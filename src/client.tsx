@@ -16,6 +16,8 @@ export function WatchdogForm({ ctx, form }: { ctx: Context; form: ConfigForm<Val
   const [revision, setRevision] = useState<number>();
   const [key, setKey] = useState('');
   const [credentials, setCredentials] = useState({ deepseek: false, jev: false });
+  const [models, setModels] = useState<readonly { id: string; name: string }[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const value = draft ?? saved.value ?? defaults;
@@ -29,6 +31,12 @@ export function WatchdogForm({ ctx, form }: { ctx: Context; form: ConfigForm<Val
   useEffect(() => {
     const controller = new AbortController();
     void refresh(controller.signal).catch(error => { if (!controller.signal.aborted) setMessage(String(error.message)); });
+    void ctx.remote.session.modelCatalog().then(result => {
+      if (controller.signal.aborted) return;
+      if (!result.ok) throw new Error('无法读取模型列表');
+      setModels(result.value.groups.find(group => group.id === 'deepseek-official')?.models ?? []);
+    }).catch(() => { if (!controller.signal.aborted) setMessage('无法读取模型列表'); })
+      .finally(() => { if (!controller.signal.aborted) setModelsLoading(false); });
     return () => controller.abort();
   }, []);
   function edit(next: Partial<Values>) {
@@ -69,7 +77,7 @@ export function WatchdogForm({ ctx, form }: { ctx: Context; form: ConfigForm<Val
     <style>{`.watchdog-config input,.watchdog-config select{box-sizing:border-box;width:100%;padding:8px 12px;border:1px solid var(--dsw-alias-border-l3,#ddd);border-radius:8px;background:var(--dsw-alias-bg-layer-1,#fff);color:inherit;font:inherit}.watchdog-config button{padding:7px 14px;border:1px solid var(--dsw-alias-border-l3,#ddd);border-radius:8px;background:var(--dsw-alias-bg-layer-1,#fff);color:inherit;font:inherit;cursor:pointer}.watchdog-config button:disabled{opacity:.45;cursor:default}.watchdog-config summary{cursor:pointer;margin:12px 0}.watchdog-config [role=status]{min-height:24px}`}</style>
     <fieldset disabled={busy || !saved.writable} style={{ border: 0, padding: 0, margin: 0 }}>
       <label style={fieldStyle}>服务
-        <select value={value.provider} onChange={e => { const provider = e.target.value as Values['provider']; edit({ provider, model: provider === 'jev' ? 'jev-latest' : 'deepseek-flash' }); setKey(''); }}>
+        <select value={value.provider} onChange={e => { const provider = e.target.value as Values['provider']; edit({ provider, model: provider === 'jev' ? 'jev-latest' : (models.find(model => model.id === 'deepseek-flash') ?? models[0])?.id ?? defaults.model }); setKey(''); }}>
           <option value="deepseek">DeepSeek</option><option value="jev">Jev</option>
         </select>
       </label>
@@ -78,7 +86,14 @@ export function WatchdogForm({ ctx, form }: { ctx: Context; form: ConfigForm<Val
         : <label style={fieldStyle}>Jev API Key {credentials.jev ? '（已保存）' : '（未配置）'}
           <input type="password" autoComplete="new-password" value={key} onChange={e => setKey(e.target.value)} placeholder={credentials.jev ? "留空保持不变" : "输入 API Key"} />
         </label>}
-      <label style={fieldStyle}>模型<input value={value.model} onChange={e => edit({ model: e.target.value })} /></label>
+      <label style={fieldStyle}>模型
+        {value.provider === 'deepseek'
+          ? <select value={value.model} disabled={modelsLoading} onChange={e => edit({ model: e.target.value })}>
+              {!models.some(model => model.id === value.model) && <option value={value.model} disabled>{value.model}{modelsLoading ? '' : '（未列出）'}</option>}
+              {models.map(model => <option key={model.id} value={model.id}>{model.name}</option>)}
+            </select>
+          : <input value={value.model} onChange={e => edit({ model: e.target.value })} />}
+      </label>
       <label style={fieldStyle}>模式<select value={value.mode} onChange={e => edit({ mode: e.target.value as Values['mode'] })}>
         <option value="shadow">观察</option><option value="enforce">执行</option>
       </select></label>
@@ -98,7 +113,7 @@ export function WatchdogForm({ ctx, form }: { ctx: Context; form: ConfigForm<Val
   </section>;
 }
 
-export const inject = ['slots', 'configForms', 'remote.credentials'];
+export const inject = ['slots', 'configForms', 'remote', 'remote.credentials', 'remote.session'];
 export function apply(ctx: Context) {
   const form = ctx.configForms.get<Values>('run-watchdog');
   ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({

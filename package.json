@@ -1,6 +1,6 @@
 {
   "name": "dsh-run-watchdog",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Purpose-aware monitoring for DeepSeek Harness long-running commands",
   "main": "dist/index.js",
   "scripts": {
