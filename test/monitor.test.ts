@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { setTimeout as delay } from 'node:timers/promises';
-import { watch, type CheckRecord, type RunningJob, type WatchOptions } from '../src/monitor.js';
-import type { Judge, Task, Verdict } from '../src/decision.js';
+import { watch, type CheckRecord, type RunningJob, type WatchOptions } from '../src/monitor';
+import type { Judge, Task, Verdict } from '../src/decision';
 
 /** A job whose reads return the queued chunks one per call. */
 function fixture(...chunks: string[]) {

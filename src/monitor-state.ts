@@ -1,6 +1,6 @@
-import { intervals, type Action, type Choice, type JudgeInput, type Task } from './decision.js';
-import { emptyOutput, outputEvidence, resetEvidence, type OutputState } from './output.js';
-import type { WatchOptions } from './monitor.js';
+import { intervals, type Action, type Choice, type JudgeInput, type Task } from './decision';
+import { emptyOutput, outputEvidence, resetEvidence, type OutputState } from './output';
+import type { WatchOptions } from './monitor';
 
 export interface MonitorState {
   readonly started: number;

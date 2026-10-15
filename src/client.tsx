@@ -9,8 +9,8 @@ import {
   Button, SegmentedControl, SettingsForm, SettingsFormModel, SettingsSecretField, SettingsValueField, StateDot,
   settingsTextField, type SettingsFieldSpec, type StateDotState,
 } from '@deepseek-ai/dsh-client-ui-primitives';
-import { en, zh, type Key } from './client-locales.js';
-import type { Config } from './index.js';
+import { en, zh, type Key } from './client-locales';
+import type { Config } from './index';
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {

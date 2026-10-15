@@ -7,7 +7,7 @@ import Jobs from '@deepseek-ai/dsh-jobs-local';
 import Prompt from '@deepseek-ai/dsh-system-prompt';
 import { ToolCallId } from '@deepseek-ai/dsh-llm';
 import type { SessionId } from '@deepseek-ai/dsh-session';
-import { interruptibleOutputWaits } from '../src/interrupt-wait.js';
+import { interruptibleOutputWaits } from '../src/interrupt-wait';
 
 test('alert releases only that session output wait without stopping jobs or cancelling the caller', { timeout: 5000 }, async () => {
   const ctx = new Context();

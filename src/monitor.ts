@@ -1,7 +1,7 @@
 import { setTimeout as delay } from 'node:timers/promises';
-import { appendOutput } from './output.js';
-import { beginCheck, initialState, planTick, scheduleNext } from './monitor-state.js';
-import { baseline, decide, options, type Action, type Choice, type Judge, type JudgeInput, type Task, type Verdict } from './decision.js';
+import { appendOutput } from './output';
+import { beginCheck, initialState, planTick, scheduleNext } from './monitor-state';
+import { baseline, decide, options, type Action, type Choice, type Judge, type JudgeInput, type Task, type Verdict } from './decision';
 
 export interface RunningJob {
   done: Promise<void>;

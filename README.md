@@ -14,17 +14,17 @@ The watchdog catches NaN during training and alerts the agent.
 
 ## Installation
 
-### Desktop: install from a GitHub link
+### Desktop: install from GitHub
 
-Open **Plugins → Add plugin**, paste the URL of the built `.tgz` package from a GitHub Release, then select **Install → Enable now**. Configure it under **Plugins → dsh-run-watchdog**.
+Open **Plugins → Add plugin**, paste the repository URL, then select **Install → Enable now**:
 
 ```text
-https://github.com/Hirate99/dsh-run-watchdog/releases/download/v0.1.0/dsh-run-watchdog-0.1.0.tgz
+https://github.com/Hirate99/dsh-run-watchdog
 ```
 
-The package link becomes available when the `v0.1.0` release workflow completes. Desktop uses its bundled runtime; installing a prebuilt package does not require running npm commands yourself.
+Configure it under **Plugins → dsh-run-watchdog**. The repository includes the built plugin; installation does not run build scripts or require a build allowlist entry. CI verifies that the committed build matches the source.
 
-Desktop also accepts the repository URL itself: `https://github.com/Hirate99/dsh-run-watchdog`. Git installs use the package's `prepare` script to build `dist/`; the host may ask you to allow dependency build scripts. This path has not yet been tested in Desktop against the remote repository. The release package contains prebuilt files and remains the recommended installation method.
+The [v0.1.0 release package](https://github.com/Hirate99/dsh-run-watchdog/releases/download/v0.1.0/dsh-run-watchdog-0.1.0.tgz) is also available. Release assets are fixed snapshots; the repository URL follows the default branch.
 
 ### Build from source
 

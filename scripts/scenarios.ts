@@ -1,4 +1,4 @@
-import type { JudgeInput } from '../src/decision.js';
+import type { JudgeInput } from '../src/decision';
 
 // Authored replay fixtures, not claims of an actual GPU training run.
 export interface Scenario {

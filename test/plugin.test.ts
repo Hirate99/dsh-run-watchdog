@@ -5,7 +5,7 @@ import Tools, { defineTool } from '@deepseek-ai/dsh-tools';
 import Prompt from '@deepseek-ai/dsh-system-prompt';
 import Jobs from '@deepseek-ai/dsh-jobs-local';
 import { ToolCallId } from '@deepseek-ai/dsh-llm';
-import * as plugin from '../src/index.js';
+import * as plugin from '../src/index';
 import Credentials from '@deepseek-ai/dsh-credentials-local';
 import { credentialRef } from '@deepseek-ai/dsh-credentials';
 import { mkdtempSync, rmSync } from 'node:fs';

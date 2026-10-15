@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { Context } from '@deepseek-ai/cordis';
 import Jobs from '@deepseek-ai/dsh-jobs-local';
-import { observeJob } from '../src/index.js';
-import { watch } from '../src/monitor.js';
+import { observeJob } from '../src/index';
+import { watch } from '../src/monitor';
 
 test('real DSH job + real child: observer preserves agent cursor and stops owned process', { timeout: 10_000 }, async () => {
   const ctx = new Context();

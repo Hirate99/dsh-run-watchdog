@@ -6,12 +6,12 @@ import type {} from '@deepseek-ai/dsh-system-prompt';
 import z from '@deepseek-ai/schemastery';
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { watch, type CheckRecord, type Handoff } from './monitor.js';
-import { createJudge } from './providers.js';
-import { registerConnectionTest, resolveKey } from './settings.js';
-import { interruptibleOutputWaits } from './interrupt-wait.js';
-import { jobSnapshot, observeJob } from './jobs.js';
-export { observeJob } from './jobs.js';
+import { watch, type CheckRecord, type Handoff } from './monitor';
+import { createJudge } from './providers';
+import { registerConnectionTest, resolveKey } from './settings';
+import { interruptibleOutputWaits } from './interrupt-wait';
+import { jobSnapshot, observeJob } from './jobs';
+export { observeJob } from './jobs';
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {

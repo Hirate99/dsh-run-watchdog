@@ -1,9 +1,9 @@
 import type { Context } from '@deepseek-ai/cordis';
 import { credentialRef } from '@deepseek-ai/dsh-credentials';
 import type {} from '@deepseek-ai/dsh-client-connection';
-import type { Config } from './index.js';
-import { options, type JudgeInput } from './decision.js';
-import { createJudge } from './providers.js';
+import type { Config } from './index';
+import { options, type JudgeInput } from './decision';
+import { createJudge } from './providers';
 
 /** Jev has its own key; DeepSeek reuses whatever reference the DSH model settings use. */
 export const keyReference = (config: Pick<Config, 'provider' | 'apiKeyEnv'>) =>

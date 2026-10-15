@@ -1,8 +1,8 @@
 // Opt-in paid evaluation. Expected actions and reasons are never sent to the model.
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { createJudge } from '../src/providers.js';
-import { decide, options, type Choice } from '../src/decision.js';
-import { scenarios, snapshot } from './scenarios.js';
+import { createJudge } from '../src/providers';
+import { decide, options, type Choice } from '../src/decision';
+import { scenarios, snapshot } from './scenarios';
 const provider = process.env.WATCHDOG_PROVIDER === 'deepseek' ? 'deepseek' : 'jev';
 const key = process.env[provider === 'jev' ? 'TYPESAFE_API_KEY' : 'DEEPSEEK_API_KEY'];
 if (!key) throw new Error('Configure the provider API key in the environment');

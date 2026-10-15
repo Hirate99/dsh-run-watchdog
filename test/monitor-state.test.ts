@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { appendOutput, emptyOutput, outputEvidence, resetEvidence } from '../src/output.js';
-import { beginCheck, initialState, planTick, scheduleNext } from '../src/monitor-state.js';
+import { appendOutput, emptyOutput, outputEvidence, resetEvidence } from '../src/output';
+import { beginCheck, initialState, planTick, scheduleNext } from '../src/monitor-state';
 
 test('output evidence is independent of chunk boundaries and leaves prior state intact', () => {
   const initial = emptyOutput();

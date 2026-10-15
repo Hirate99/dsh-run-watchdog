@@ -3,8 +3,8 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { decide, options, type JudgeInput } from '../src/decision.js';
-import { createJudge } from '../src/providers.js';
+import { decide, options, type JudgeInput } from '../src/decision';
+import { createJudge } from '../src/providers';
 
 const provider = process.env.WATCHDOG_PROVIDER === 'jev' ? 'jev' : 'deepseek';
 const apiKey = process.env[provider === 'jev' ? 'TYPESAFE_API_KEY' : 'DEEPSEEK_API_KEY'];

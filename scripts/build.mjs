@@ -5,3 +5,8 @@ await build({
   banner: { js: 'window.__ModuleLoader__.load({id:"dsh-run-watchdog",factory:(require)=>{var module={exports:{}};var exports=module.exports;' },
   footer: { js: 'return module.exports;}});' },
 });
+
+await build({
+  entryPoints: ['src/index.ts'], outfile: 'dist/index.js', bundle: true,
+  platform: 'node', format: 'esm', packages: 'external', target: 'node22',
+});

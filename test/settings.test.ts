@@ -8,8 +8,8 @@ import { tmpdir } from 'node:os';
 import { Context } from '@deepseek-ai/cordis';
 import Credentials from '@deepseek-ai/dsh-credentials-local';
 import { credentialRef } from '@deepseek-ai/dsh-credentials';
-import { Config, readConfig } from '../src/index.js';
-import { resolveKey, testConnection } from '../src/settings.js';
+import { Config, readConfig } from '../src/index';
+import { resolveKey, testConnection } from '../src/settings';
 
 test('UI credentials: separate Jev key, stored DS key, real test request and timeout', async () => {
   const home = mkdtempSync(join(tmpdir(), 'watchdog-ui-'));

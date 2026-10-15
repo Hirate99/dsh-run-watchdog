@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
-import { createJudge } from '../src/providers.js';
-import { options, type JudgeInput } from '../src/decision.js';
+import { createJudge } from '../src/providers';
+import { options, type JudgeInput } from '../src/decision';
 
 const state: JudgeInput = { purpose: 'Build', command: 'build', elapsedSeconds: 10, recentOutput: 'compiling', newLines: 1, outputChanged: true, mostRepeated: null, lossy: false };
 test('HTTP contracts: Jev typed question and DeepSeek JSON; unknown choices rejected', async () => {

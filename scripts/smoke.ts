@@ -1,5 +1,5 @@
-import { createJudge } from '../src/providers.js';
-import { options, type JudgeInput } from '../src/decision.js';
+import { createJudge } from '../src/providers';
+import { options, type JudgeInput } from '../src/decision';
 
 const provider = process.argv[2] === 'jev' ? 'jev' : 'deepseek';
 const keyName = provider === 'jev' ? 'TYPESAFE_API_KEY' : 'DEEPSEEK_API_KEY';

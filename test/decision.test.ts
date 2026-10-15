@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { decide } from '../src/decision.js';
+import { decide } from '../src/decision';
 
 // Distributions recorded from jev-latest on real local processes (.integration/live-cases-jev.json).
 const progress = { check_10s: 0.52, check_30s: 0.27, check_60s: 0.12, check_120s: 0.05, check_300s: 0.02, check_600s: 0.02, notify_agent: 0, stop: 0, uncertain: 0 };

@@ -1,4 +1,4 @@
-import type { OutputEvidence } from './output.js';
+import type { OutputEvidence } from './output';
 
 export const intervals = [10, 30, 60, 120, 300, 600] as const;
 export type Choice = `check_${typeof intervals[number]}s` | 'notify_agent' | 'stop' | 'uncertain';

@@ -7,7 +7,7 @@ import { Context } from '@deepseek-ai/cordis';
 import Tools, { type ToolRunContext } from '@deepseek-ai/dsh-tools';
 import Prompt from '@deepseek-ai/dsh-system-prompt';
 import Jobs from '@deepseek-ai/dsh-jobs-local';
-import * as plugin from '../src/index.js';
+import * as plugin from '../src/index';
 
 test('attachments return immediately, check concurrently and deliver one alert per job', { timeout: 8000 }, async () => {
   const responses: ServerResponse[] = [];

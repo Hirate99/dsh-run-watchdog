@@ -1,4 +1,4 @@
-import type { Choice, Judge, Verdict } from './decision.js';
+import type { Choice, Judge, Verdict } from './decision';
 
 export interface ProviderConfig {
   provider: 'jev' | 'deepseek';

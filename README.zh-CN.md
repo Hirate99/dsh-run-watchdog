@@ -14,17 +14,17 @@
 
 ## 安装
 
-### Desktop：通过 GitHub 链接安装
+### Desktop：通过 GitHub 安装
 
-打开 **插件 → 添加插件**，粘贴 GitHub Release 中已构建的 `.tgz` 安装包链接，点击 **安装 → 立即启用**。然后进入 **插件 → dsh-run-watchdog** 配置。
+打开 **插件 → 添加插件**，粘贴仓库地址，点击 **安装 → 立即启用**：
 
 ```text
-https://github.com/Hirate99/dsh-run-watchdog/releases/download/v0.1.0/dsh-run-watchdog-0.1.0.tgz
+https://github.com/Hirate99/dsh-run-watchdog
 ```
 
-v0.1.0 发布工作流完成后，安装包链接即可使用。Desktop 使用自带运行时，使用预构建包无需自行执行 npm 命令。
+在 **插件 → dsh-run-watchdog** 中配置。仓库已包含构建产物，安装时不执行构建脚本，也不需要添加构建白名单。CI 会检查提交的产物与源码一致。
 
-Desktop 也接受仓库地址本身：`https://github.com/Hirate99/dsh-run-watchdog`。Git 安装通过包内 `prepare` 脚本构建 `dist/`，宿主可能提示授权依赖构建脚本。这条路径尚未在 Desktop 中针对远端仓库验证；推荐使用已包含构建产物的 Release 安装包。
+也可使用 [v0.1.0 安装包](https://github.com/Hirate99/dsh-run-watchdog/releases/download/v0.1.0/dsh-run-watchdog-0.1.0.tgz)。Release 安装包是固定快照，仓库地址跟随默认分支。
 
 ### 从源码构建
 

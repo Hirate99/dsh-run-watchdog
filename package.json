@@ -5,10 +5,9 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "tsx --test test/*.test.ts",
-    "build": "tsc && node scripts/build-client.mjs",
+    "build": "tsc --emitDeclarationOnly && node scripts/build.mjs",
     "check": "npm run build && tsc -p tsconfig.test.json && npm test",
-    "smoke": "tsx scripts/smoke.ts",
-    "prepare": "npm run build"
+    "smoke": "tsx scripts/smoke.ts"
   },
   "keywords": [
     "dsh-plugin",
@@ -50,8 +49,11 @@
   },
   "types": "dist/index.d.ts",
   "files": [
-    "dist",
+    "dist/index.js",
+    "dist/client.js",
+    "dist/*.d.ts",
     "README.md",
+    "README.zh-CN.md",
     "cordis.patch.yml"
   ],
   "engines": {
