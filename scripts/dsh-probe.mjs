@@ -8,15 +8,20 @@ export function apply(ctx) {
   let started = false;
   const run = () => {
     const native = process.platform === 'win32' ? 'pwsh' : 'bash';
-    if (started || !ctx.tools.get('watch_run') || !ctx.tools.get(native)) return;
+    if (started || !ctx.tools.get('watch_job') || !ctx.tools.get(native)) return;
     started = true;
     void ctx.tools.execute({
-      name: 'watch_run', callId: ToolCallId('watchdog-native-probe'),
+      name: native, callId: ToolCallId('watchdog-native-probe'),
       arguments: {
-        purpose: 'Verify the real DSH native shell returns a marker and completes',
+        run_in_background: true,
         command: native === 'pwsh' ? "Write-Output 'watchdog-native-ok'; Start-Sleep -Milliseconds 200" : "printf 'watchdog-native-ok\\n'; sleep 0.2",
       },
       signal: AbortSignal.timeout(20_000),
+    }).then(async started => {
+      if (started.isError || !started.value?.jobId) throw new Error(JSON.stringify(started));
+      return ctx.tools.execute({ name: 'watch_job', callId: ToolCallId('attach-probe'),
+        arguments: { jobId: started.value.jobId, purpose: 'Verify the native task completes with its marker' },
+        signal: AbortSignal.timeout(20_000) });
     }).then(result => {
       mkdirSync('.integration', { recursive: true });
       writeFileSync('.integration/native-probe.json', JSON.stringify(result, null, 2));

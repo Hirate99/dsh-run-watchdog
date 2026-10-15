@@ -1,0 +1,8 @@
+{
+  "name": "trial-01",
+  "learning_rate": 0.01,
+  "steps": 160,
+  "batch_size": 512,
+  "checkpoint_every": 20,
+  "output_dir": "results/trial-01"
+}

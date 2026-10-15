@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import { Context } from '@deepseek-ai/cordis';
 import Jobs from '@deepseek-ai/dsh-jobs-local';
 import { observeJob } from '../src/index.js';
-import { monitor } from '../src/monitor.js';
+import { watch } from '../src/monitor.js';
 
 test('real DSH job + real child: observer preserves agent cursor and stops owned process', { timeout: 10_000 }, async () => {
   const ctx = new Context();
@@ -23,7 +23,11 @@ test('real DSH job + real child: observer preserves agent cursor and stops owned
     const observer = observeJob(ctx.jobs, id);
     try {
       await outputReady;
-      const result = await monitor(observer, { purpose: 'Download', command: 'fixture', autoStop: true }, { decide: async () => ({ provider: 'jev', choice: 'stop', probabilities: { stop: 0.9 }, confidence: 0.9 }) }, { firstCheckMs: 1, mode: 'enforce' });
+      const never = new AbortController().signal;
+      const result = await watch(observer, { purpose: 'Download', command: 'fixture', autoStop: true }, {
+        judge: { decide: async () => ({ choice: 'stop', probabilities: { stop: 0.9 } }) },
+        mode: 'enforce', firstCheckMs: 1, judgeTimeoutMs: 1_000, stopThreshold: 0.8, maxWaitMs: 60_000, recordAfterMs: 0, tickMs: 5,
+      }, never, never).handoff;
       assert.equal(result.status, 'stop-requested');
       await observer.done;
       assert.equal(ctx.jobs.get(id).status, 'killed');

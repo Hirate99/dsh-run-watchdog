@@ -1,5 +1,7 @@
 import { setTimeout as delay } from 'node:timers/promises';
-import { baseline, choices, decide, intervals, type Action, type Choice, type Judge, type Snapshot, type Task, type Verdict } from './decision.js';
+import { appendOutput } from './output.js';
+import { beginCheck, initialState, planTick, scheduleNext } from './monitor-state.js';
+import { baseline, decide, options, type Action, type Choice, type Judge, type JudgeInput, type Task, type Verdict } from './decision.js';
 
 export interface RunningJob {
   done: Promise<void>;
@@ -7,88 +9,131 @@ export interface RunningJob {
   read(): { text: string; lossy: boolean };
   stop(reason: string): void;
 }
-export interface MonitorConfig {
-  mode?: 'shadow' | 'enforce';
-  firstCheckMs?: number;
-  judgeTimeoutMs?: number;
-  stopThreshold?: number;
+
+export interface WatchOptions {
+  judge: Judge;
+  mode: 'shadow' | 'enforce';
+  firstCheckMs: number;
+  judgeTimeoutMs: number;
+  stopThreshold: number;
+  /** Longest the caller waits. The process keeps running afterwards. */
+  maxWaitMs: number;
+  /** How long checks keep being recorded after handoff; 0 ends monitoring there. */
+  recordAfterMs: number;
   record?(event: CheckRecord): void;
+  /** Local polling period for output, readiness and the wait limit. */
+  tickMs?: number;
 }
+
 export interface CheckRecord {
-  state: Snapshot;
+  phase: 'foreground' | 'background';
+  state: JudgeInput;
   baseline: string[];
   verdict?: Verdict;
   action: Action;
   error?: string;
 }
-export interface MonitorResult {
-  status: 'finished' | 'notify' | 'detached' | 'stop-requested';
+
+export type HandoffStatus = 'finished' | 'still-running' | 'ready' | 'notify' | 'stop-requested' | 'detached';
+
+export interface Handoff {
+  status: HandoffStatus;
   output: string;
+  outputTruncated: boolean;
   decision?: Choice;
+  checks: number;
+  judgeFailures: number;
 }
 
-export async function monitor(job: RunningJob, task: Task, judge: Judge, config: MonitorConfig = {}, caller = new AbortController().signal): Promise<MonitorResult> {
-  const lifetime = new AbortController();
-  const signal = AbortSignal.any([caller, lifetime.signal]);
-  void job.done.then(() => lifetime.abort());
-  const started = Date.now();
-  let waitMs = config.firstCheckMs ?? 10_000;
-  let checks = 0;
-  let output = '';
-  let ready = false;
-  let previousDecision: Choice | undefined;
-  const read = () => {
-    const chunk = job.read();
-    output = (output + chunk.text).slice(-16_000);
-    ready ||= !!task.readyPattern && output.includes(task.readyPattern);
-    return chunk;
+/**
+ * Watch one job. `handoff` settles when the caller should have control back: completion, a ready
+ * service, an enforced decision, or the wait limit. Only actions before handoff are executed; later
+ * checks are recorded until `ended`. Cancelling `caller` before handoff detaches monitoring; `lifetime`
+ * (plugin unload) ends monitoring and leaves the job running.
+ */
+export function watch(job: RunningJob, task: Task, opts: WatchOptions, caller: AbortSignal, lifetime: AbortSignal) {
+  const { promise: handoff, resolve, reject } = Promise.withResolvers<Handoff>();
+  const over = new AbortController();
+  const signal = AbortSignal.any([over.signal, lifetime]);
+  void job.done.then(() => over.abort());
+
+  let state = initialState(Date.now(), opts.firstCheckMs);
+  let handedOffAt: number | undefined;
+
+  const settle = (status: HandoffStatus) => {
+    if (handedOffAt !== undefined) return;
+    handedOffAt = Date.now();
+    resolve({
+      status,
+      output: state.output.text,
+      outputTruncated: state.output.truncated,
+      decision: state.previous,
+      checks: state.checks,
+      judgeFailures: state.failures,
+    });
   };
-  try {
-    while (job.running()) {
-      await delay(waitMs, undefined, { signal });
-      if (!job.running()) break;
-      const chunk = read();
-      const lines = chunk.text.split(/\r?\n|\r/).filter(Boolean);
-      const counts = new Map<string, number>();
-      for (const line of lines) counts.set(line, (counts.get(line) ?? 0) + 1);
-      const repeated = [...counts].sort((a, b) => b[1] - a[1])[0];
-      const state: Snapshot = {
-        task, elapsedSeconds: (Date.now() - started) / 1000, recentOutput: output,
-        newLines: lines.length, outputChanged: chunk.text.length > 0,
-        mostRepeated: repeated ? { line: repeated[0], count: repeated[1] } : null,
-        lossy: chunk.lossy, ready, previousDecision,
-      };
-      const fallback = intervals[Math.min(++checks, intervals.length - 1)]!;
-      let verdict: Verdict | undefined;
-      let action: Action = { kind: 'wait', seconds: fallback };
-      let error: string | undefined;
-      try {
-        verdict = await judge.decide(state, choices(state), AbortSignal.any([signal, AbortSignal.timeout(config.judgeTimeoutMs ?? 8_000)]));
-        action = decide(verdict, state, fallback, config.stopThreshold);
-      } catch (cause) {
-        if (signal.aborted) break;
-        error = cause instanceof Error ? cause.message : String(cause);
-      }
-      if (!job.running() || signal.aborted) break;
-      config.record?.({ state, baseline: baseline(state), verdict, action, error });
-      previousDecision = verdict?.choice;
-      if (config.mode !== 'enforce') action = { kind: 'wait', seconds: action.kind === 'wait' ? action.seconds : fallback };
-      if (action.kind === 'wait') { waitMs = action.seconds * 1000; continue; }
-      if (action.kind === 'stop') {
-        job.stop('watchdog: Jev stop probability reached configured threshold');
-        return { status: 'stop-requested', output, decision: previousDecision };
-      }
-      return { status: action.kind === 'notify' ? 'notify' : 'detached', output, decision: previousDecision };
+  const cancel = () => {
+    if (handedOffAt !== undefined) return;
+    handedOffAt = Date.now();
+    reject(caller.reason);
+    over.abort();
+  };
+  if (caller.aborted) cancel();
+  else caller.addEventListener('abort', cancel, { once: true });
+
+  async function check(phase: CheckRecord['phase']): Promise<Action | undefined> {
+    const pending = beginCheck(state, task, Date.now());
+    state = pending.state;
+    const { snapshot, fallback } = pending;
+    let verdict: Verdict | undefined;
+    let action: Action = { kind: 'wait', seconds: fallback };
+    let error: string | undefined;
+    try {
+      verdict = await opts.judge.decide(snapshot, options, AbortSignal.any([signal, AbortSignal.timeout(opts.judgeTimeoutMs)]));
+      action = decide(verdict, fallback, task.autoStop, opts.stopThreshold);
+    } catch (cause) {
+      state = { ...state, failures: state.failures + 1 };
+      error = cause instanceof Error ? cause.message : String(cause);
     }
-    caller.throwIfAborted();
-    read();
-    return { status: 'finished', output };
-  } catch (error) {
-    if (caller.aborted) { job.stop('watchdog: caller cancelled'); throw error; }
-    if (!lifetime.signal.aborted) throw error;
-    read();
-    return { status: 'finished', output };
-  } finally {
-    lifetime.abort();
+    // A job that settled while the judge was thinking makes the verdict stale.
+    if (signal.aborted) return;
+    opts.record?.({ phase, state: snapshot, baseline: baseline(snapshot), verdict, action, error });
+    state = scheduleNext(state, action, fallback, verdict?.choice, Date.now());
+    return verdict && action;
   }
+
+  async function loop() {
+    for (;;) {
+      await delay(opts.tickMs ?? 1_000, undefined, { signal }).catch(() => {});
+      state = { ...state, output: appendOutput(state.output, job.read()) };
+      if (signal.aborted || !job.running()) return;
+      const plan = planTick(state, task, opts, handedOffAt, Date.now());
+      if (plan.handoff) settle(plan.handoff);
+      if (plan.end) return;
+      if (!plan.check) continue;
+      const action = await check(handedOffAt === undefined ? 'foreground' : 'background');
+      if (!action || handedOffAt !== undefined || opts.mode !== 'enforce' || action.kind === 'wait') continue;
+      if (action.kind === 'stop') {
+        job.stop('watchdog: stop probability reached the configured threshold');
+        settle('stop-requested');
+        return;
+      }
+      settle('notify');
+    }
+  }
+
+  const ended = loop().then(
+    () => {
+      if (handedOffAt === undefined) settle(job.running() ? 'detached' : 'finished');
+    },
+    error => {
+      if (handedOffAt !== undefined) return;
+      handedOffAt = Date.now();
+      reject(error);
+    },
+  ).finally(() => {
+    caller.removeEventListener('abort', cancel);
+    over.abort();
+  });
+  return { handoff, ended };
 }

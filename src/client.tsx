@@ -1,122 +1,219 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import type { Context } from '@deepseek-ai/cordis';
 import type {} from '@deepseek-ai/dsh-api-remotes/client';
+import type {} from '@deepseek-ai/dsh-client-locale/client';
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client';
 import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client';
-import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client';
+import type {} from '@deepseek-ai/dsh-client-ui-settings/client';
+import {
+  Button, SegmentedControl, SettingsForm, SettingsFormModel, SettingsSecretField, SettingsValueField, StateDot,
+  settingsTextField, type SettingsFieldSpec, type StateDotState,
+} from '@deepseek-ai/dsh-client-ui-primitives';
+import { en, zh, type Key } from './client-locales.js';
 import type { Config } from './index.js';
 
-type Values = Pick<Config, 'provider' | 'model' | 'mode' | 'firstCheckMs' | 'judgeTimeoutMs' | 'stopThreshold'>;
-const defaults: Values = { provider: 'deepseek', model: 'deepseek-flash', mode: 'shadow', firstCheckMs: 10000, judgeTimeoutMs: 8000, stopThreshold: 0.8 };
-const endpoint = '/api/run-watchdog/test';
-
-export function WatchdogForm({ ctx, form }: { ctx: Context; form: ConfigForm<Values> }) {
-  const saved = useSyncExternalStore(listener => form.subscribe(listener), () => form.getSnapshot());
-  const [draft, setDraft] = useState<Values | null>(null);
-  const [revision, setRevision] = useState<number>();
-  const [key, setKey] = useState('');
-  const [credentials, setCredentials] = useState({ deepseek: false, jev: false });
-  const [models, setModels] = useState<readonly { id: string; name: string }[]>([]);
-  const [modelsLoading, setModelsLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('');
-  const value = draft ?? saved.value ?? defaults;
-  const dirty = draft !== null || key !== '';
-  const refresh = async (signal?: AbortSignal) => {
-    const response = await fetch(endpoint, { signal });
-    if (!response.ok) throw new Error('无法读取密钥状态');
-    const result = await response.json();
-    setCredentials({ deepseek: result.deepseek.configured, jev: result.jev.configured });
-  };
-  useEffect(() => {
-    const controller = new AbortController();
-    void refresh(controller.signal).catch(error => { if (!controller.signal.aborted) setMessage(String(error.message)); });
-    void ctx.remote.session.modelCatalog().then(result => {
-      if (controller.signal.aborted) return;
-      if (!result.ok) throw new Error('无法读取模型列表');
-      setModels(result.value.groups.find(group => group.id === 'deepseek-official')?.models ?? []);
-    }).catch(() => { if (!controller.signal.aborted) setMessage('无法读取模型列表'); })
-      .finally(() => { if (!controller.signal.aborted) setModelsLoading(false); });
-    return () => controller.abort();
-  }, []);
-  function edit(next: Partial<Values>) {
-    if (!draft) setRevision(saved.revision);
-    setDraft({ ...value, ...next });
-    setMessage('');
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface LocaleNamespaceMap {
+    runWatchdog: Key;
   }
-  async function save() {
-    setBusy(true); setMessage('');
-    try {
-      // Save the secret first; report partial success if the settings revision conflicts.
-      if (key && value.provider === 'jev') {
-        const result = await ctx.remote.credentials.set('TYPESAFE_API_KEY', key);
-        if (!result.ok) throw new Error('Jev 密钥保存失败');
-        setKey('');
-        await refresh();
-      }
-      if (draft && !await form.mutate(Object.entries(draft).map(([field, val]) => ({ op: 'set' as const, path: [field], value: val })), revision)) {
-        throw new Error('设置保存失败，请刷新重试。');
-      }
-      setDraft(null); setMessage('已保存');
-    } catch (error) { setMessage(error instanceof Error ? error.message : '保存失败'); }
-    finally { setBusy(false); }
-  }
-  async function test() {
-    setBusy(true); setMessage('连接中…');
-    try {
-      const response = await fetch(endpoint, { method: 'POST', signal: AbortSignal.timeout(value.judgeTimeoutMs + 5000) });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
-      setMessage(`连接成功 · ${result.latencyMs} ms`);
-    } catch (error) { setMessage(error instanceof Error ? error.message : '连接失败'); }
-    finally { setBusy(false); }
-  }
-  if (saved.status !== 'ready') return <p>加载中…</p>;
-  const fieldStyle = { display: 'grid', gap: 6, marginBottom: 16 };
-  return <section className="watchdog-config" style={{ maxWidth: 560, padding: '12px 0', lineHeight: 1.6 }}>
-    <style>{`.watchdog-config input,.watchdog-config select{box-sizing:border-box;width:100%;padding:8px 12px;border:1px solid var(--dsw-alias-border-l3,#ddd);border-radius:8px;background:var(--dsw-alias-bg-layer-1,#fff);color:inherit;font:inherit}.watchdog-config button{padding:7px 14px;border:1px solid var(--dsw-alias-border-l3,#ddd);border-radius:8px;background:var(--dsw-alias-bg-layer-1,#fff);color:inherit;font:inherit;cursor:pointer}.watchdog-config button:disabled{opacity:.45;cursor:default}.watchdog-config summary{cursor:pointer;margin:12px 0}.watchdog-config [role=status]{min-height:24px}`}</style>
-    <fieldset disabled={busy || !saved.writable} style={{ border: 0, padding: 0, margin: 0 }}>
-      <label style={fieldStyle}>服务
-        <select value={value.provider} onChange={e => { const provider = e.target.value as Values['provider']; edit({ provider, model: provider === 'jev' ? 'jev-latest' : (models.find(model => model.id === 'deepseek-flash') ?? models[0])?.id ?? defaults.model }); setKey(''); }}>
-          <option value="deepseek">DeepSeek</option><option value="jev">Jev</option>
-        </select>
-      </label>
-      {value.provider === 'deepseek'
-        ? (!credentials.deepseek && <p>请在 DSH 模型设置中配置 DeepSeek 密钥。</p>)
-        : <label style={fieldStyle}>Jev API Key {credentials.jev ? '（已保存）' : '（未配置）'}
-          <input type="password" autoComplete="new-password" value={key} onChange={e => setKey(e.target.value)} placeholder={credentials.jev ? "留空保持不变" : "输入 API Key"} />
-        </label>}
-      <label style={fieldStyle}>模型
-        {value.provider === 'deepseek'
-          ? <select value={value.model} disabled={modelsLoading} onChange={e => edit({ model: e.target.value })}>
-              {!models.some(model => model.id === value.model) && <option value={value.model} disabled>{value.model}{modelsLoading ? '' : '（未列出）'}</option>}
-              {models.map(model => <option key={model.id} value={model.id}>{model.name}</option>)}
-            </select>
-          : <input value={value.model} onChange={e => edit({ model: e.target.value })} />}
-      </label>
-      <label style={fieldStyle}>模式<select value={value.mode} onChange={e => edit({ mode: e.target.value as Values['mode'] })}>
-        <option value="shadow">观察</option><option value="enforce">执行</option>
-      </select></label>
-      <details><summary>高级设置</summary>
-        <label style={fieldStyle}>首次检查（秒）<input type="number" min="0.001" step="any" value={value.firstCheckMs / 1000} onChange={e => edit({ firstCheckMs: Number(e.target.value) * 1000 })} /></label>
-        <label style={fieldStyle}>请求超时（秒）<input type="number" min="0.001" step="any" value={value.judgeTimeoutMs / 1000} onChange={e => edit({ judgeTimeoutMs: Number(e.target.value) * 1000 })} /></label>
-        {value.provider === 'jev' && <label style={fieldStyle}>停止阈值<input type="number" min="0.5" max="1" step="0.01" value={value.stopThreshold} onChange={e => edit({ stopThreshold: Number(e.target.value) })} /></label>}
-      </details>
-      <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-        <button disabled={!dirty || !value.model.trim()} onClick={() => void save()}>保存</button>
-        <button disabled={!dirty} onClick={() => { setDraft(null); setKey(''); setMessage(''); }}>放弃修改</button>
-        <button disabled={dirty} onClick={() => void test()}>测试连接</button>
-      </div>
-    </fieldset>
-    {!saved.writable && <p>配置只读</p>}
-    <p role="status" aria-live="polite">{message}</p>
-  </section>;
 }
 
-export const inject = ['slots', 'configForms', 'remote', 'remote.credentials', 'remote.session'];
+const NS = 'runWatchdog';
+const jevKeyRef = 'TYPESAFE_API_KEY';
+type T = (key: Key, params?: Record<string, unknown>) => string;
+type NumberField = 'firstCheckMs' | 'judgeTimeoutMs' | 'stopThreshold';
+
+/** A number shown in display units (seconds for the *Ms fields) and stored in config units. */
+function numberField(field: NumberField, scale: number, valid: (n: number) => boolean): SettingsFieldSpec {
+  return {
+    field,
+    format: value => typeof value === 'number' ? String(value / scale) : '',
+    parse: draft => {
+      if (!draft.trim()) return { kind: 'clear' };
+      const n = Number(draft);
+      return Number.isFinite(n) && valid(n) ? { kind: 'set', value: Math.round(n * scale * 1000) / 1000 } : undefined;
+    },
+  };
+}
+
+/** Staged form over the plugin's config entry, plus the two credential states the page reports. */
+function createPage(ctx: Context) {
+  const scope = ctx.configForms.get<Partial<Config>>('run-watchdog');
+  let keys = { deepseek: false, jev: false };
+  let models: readonly { id: string; name: string }[] = [];
+  const form = new SettingsFormModel(scope, [
+    settingsTextField('provider'), settingsTextField('model'), settingsTextField('mode'),
+    numberField('firstCheckMs', 1000, n => n > 0),
+    numberField('judgeTimeoutMs', 1000, n => n > 0),
+    numberField('stopThreshold', 1, n => n >= 0.5 && n <= 1),
+  ], [{
+    field: 'jevKey',
+    write: async value => (await ctx.remote.credentials.set(jevKeyRef, value)).ok && (await readKeys(), keys.jev),
+  }]);
+  const project = () => ({
+    ...form.shell(),
+    provider: (form.field('provider').text || 'deepseek') as Config['provider'],
+    mode: (form.field('mode').text || 'shadow') as Config['mode'],
+    model: form.field('model'),
+    firstCheckMs: form.field('firstCheckMs'),
+    judgeTimeoutMs: form.field('judgeTimeoutMs'),
+    stopThreshold: form.field('stopThreshold'),
+    jevKey: form.field('jevKey'),
+    keys, models,
+  });
+  const store = form.bind(project);
+
+  async function readKeys() {
+    const deepseekRef = scope.getSnapshot().value?.apiKeyEnv || 'DEEPSEEK_API_KEY';
+    const response = await ctx.remote.credentials.describe([deepseekRef, jevKeyRef]);
+    if (!response.ok) return;
+    keys = { deepseek: !!response.value[deepseekRef]?.configured, jev: !!response.value[jevKeyRef]?.configured };
+    store.set(project());
+  }
+  void readKeys();
+  void ctx.remote.session.modelCatalog().then(result => {
+    if (!result.ok) return;
+    models = result.value.groups.find(group => group.id === 'deepseek-official')?.models ?? [];
+    store.set(project());
+  });
+  return { store, actions: form.actions(), readKeys, dispose: () => form.dispose() };
+}
+type Page = ReturnType<typeof createPage>;
+
+function WatchdogPage({ t, page }: { t: T; page: Page }) {
+  const s = useSyncExternalStore(page.store.subscribe, page.store.getSnapshot);
+  const { edit, resetField, save, discard } = page.actions;
+  const disabled = !s.writable;
+  const number = (field: NumberField, label: Key, hint: Key, invalid: Key = 'invalid') => (
+    <SettingsValueField
+      id={`run-watchdog-${field}`} label={t(label)} hint={t(hint)} numeric disabled={disabled}
+      overriddenLabel={t('overridden')} resetLabel={t('reset')} invalidLabel={t(invalid)}
+      {...s[field]} onEdit={text => edit(field, text)} onReset={() => resetField(field)}
+    />
+  );
+  const chooseProvider = (provider: Config['provider']) => {
+    edit('provider', provider);
+    edit('model', provider === 'jev' ? 'jev-latest' : (s.models.find(m => m.id === 'deepseek-flash') ?? s.models[0])?.id ?? 'deepseek-flash');
+  };
+
+  return (
+    <SettingsForm
+      labels={{ unavailable: t('unavailable'), readOnly: t('readOnly'), saveFailed: t('saveFailed'), save: t('save'), saving: t('saving') }}
+      state={s} onSave={save} onDiscard={discard}
+    >
+      <div className="rw-field">
+        <span className="rw-label">{t('provider')}</span>
+        <SegmentedControl
+          id="run-watchdog-provider" label={t('provider')} value={s.provider} disabled={disabled} onChange={chooseProvider}
+          options={[{ value: 'deepseek', label: 'DeepSeek' }, { value: 'jev', label: 'Jev' }]}
+        />
+        <div id={`run-watchdog-provider-${s.provider}-panel`} role="tabpanel" aria-labelledby={`run-watchdog-provider-${s.provider}`}>
+          <p className="rw-hint">{t('providerHint')}</p>
+          {s.provider === 'deepseek' && (
+            <p className="rw-hint rw-inline">
+              <StateDot state={s.keys.deepseek ? 'done' : 'warning'} />
+              {t(s.keys.deepseek ? 'deepseekKeySet' : 'deepseekKeyUnset')}
+            </p>
+          )}
+        </div>
+      </div>
+      {s.provider === 'jev' && (
+        <SettingsSecretField
+          id="run-watchdog-jev-key" label={t('jevKey')} hint={t('jevKeyHint')} disabled={disabled}
+          text={s.jevKey.text} configured={s.keys.jev} stateLabel={t(s.keys.jev ? 'jevKeySet' : 'jevKeyUnset')}
+          onEdit={text => edit('jevKey', text)}
+        />
+      )}
+      {s.provider === 'deepseek' && s.models.length > 0 ? (
+        <label className="rw-field">
+          <span className="rw-label">{t('model')}</span>
+          <select className="rw-input" value={s.model.text} disabled={disabled} onChange={e => edit('model', e.target.value)}>
+            {!s.models.some(m => m.id === s.model.text) && <option value={s.model.text}>{s.model.text} {t('modelUnlisted')}</option>}
+            {s.models.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+          </select>
+        </label>
+      ) : (
+        <SettingsValueField
+          id="run-watchdog-model" label={t('model')} disabled={disabled}
+          overriddenLabel={t('overridden')} resetLabel={t('reset')} invalidLabel={t('invalid')}
+          {...s.model} onEdit={text => edit('model', text)} onReset={() => resetField('model')}
+        />
+      )}
+      <div className="rw-field">
+        <span className="rw-label">{t('mode')}</span>
+        <SegmentedControl
+          id="run-watchdog-mode" label={t('mode')} value={s.mode} disabled={disabled} onChange={mode => edit('mode', mode)}
+          options={[{ value: 'shadow', label: t('shadow') }, { value: 'enforce', label: t('enforce') }]}
+        />
+        <p className="rw-hint" id={`run-watchdog-mode-${s.mode}-panel`} role="tabpanel" aria-labelledby={`run-watchdog-mode-${s.mode}`}>
+          {t(s.mode === 'enforce' ? 'enforceHint' : 'shadowHint')}
+        </p>
+      </div>
+      <details className="rw-field rw-advanced">
+        <summary className="rw-label">{t('advanced')}</summary>
+        {number('firstCheckMs', 'firstCheck', 'firstCheckHint')}
+        {number('judgeTimeoutMs', 'judgeTimeout', 'judgeTimeoutHint')}
+        {s.provider === 'jev' && number('stopThreshold', 'stopThreshold', 'stopThresholdHint', 'invalidRatio')}
+      </details>
+      <ConnectionTest t={t} dirty={s.dirty} />
+    </SettingsForm>
+  );
+}
+
+/** Sends the saved judge one synthetic prompt; a working judge answers notify_agent. */
+function ConnectionTest({ t, dirty }: { t: T; dirty: boolean }) {
+  const [result, setResult] = useState<{ state: StateDotState; text: string }>();
+  async function run() {
+    setResult({ state: 'ongoing', text: t('testing') });
+    try {
+      const response = await fetch('/api/run-watchdog/test', { method: 'POST' });
+      const body = await response.json() as { choice?: string; latencyMs?: number; error?: string };
+      const params = { choice: body.choice, ms: body.latencyMs, reason: body.error };
+      setResult(response.ok
+        ? body.choice === 'notify_agent' ? { state: 'done', text: t('testOk', params) } : { state: 'warning', text: t('testOdd', params) }
+        : { state: 'error', text: t(body.error === 'timeout' ? 'testTimeout' : body.error === 'no-key' ? 'testNoKey' : 'testFailed', params) });
+    } catch {
+      setResult({ state: 'error', text: t('testFailed', { reason: 'network' }) });
+    }
+  }
+  return (
+    <div className="rw-field">
+      <div className="rw-inline">
+        <Button variant="outline" size="sm" disabled={dirty || result?.state === 'ongoing'} onClick={() => void run()}>{t('test')}</Button>
+        {result && <span className="rw-status" role="status"><StateDot state={result.state} />{result.text}</span>}
+      </div>
+      <p className="rw-hint">{t(dirty ? 'testSaveFirst' : 'testHint')}</p>
+    </div>
+  );
+}
+
+// Mirrors the shared settings field styles so custom rows sit flush with the primitives.
+const css = `
+.rw-field{display:flex;flex-direction:column;gap:6px;padding:12px 0;margin:0}
+.rw-field + *, * + .rw-field{border-top:0.5px solid var(--dsw-alias-border-l2)}
+.rw-label{font-size:13px;font-weight:500;line-height:1.5;color:var(--dsw-alias-label-primary)}
+.rw-hint{margin:0;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-tertiary)}
+.rw-inline{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rw-input{height:34px;padding:0 12px;border:0.5px solid var(--dsw-alias-border-l4);border-radius:var(--dsw-radius-md);background:var(--dsw-alias-bg-layer-3);font:inherit;font-size:13px;color:var(--dsw-alias-label-primary)}
+.rw-input:focus-visible{outline:none;border-color:var(--dsw-alias-state-business-primary)}
+.rw-advanced > summary{cursor:pointer;width:fit-content}
+.rw-status{display:inline-flex;align-items:center;gap:6px;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
+`;
+
+export const inject = ['slots', 'locale', 'configForms', 'remote', 'remote.credentials', 'remote.session'];
+
 export function apply(ctx: Context) {
-  const form = ctx.configForms.get<Values>('run-watchdog');
+  ctx.effect(() => ctx.locale.register(NS, { zh, en }));
+  ctx.effect(() => {
+    const style = document.createElement('style');
+    style.textContent = css;
+    document.head.append(style);
+    return () => style.remove();
+  });
+  const page = createPage(ctx);
+  ctx.effect(() => page.dispose);
+  ctx.effect(() => ctx.remote.$on('credentials/reference-updated', () => void page.readKeys()));
   ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
-    name: 'plugins.bundle.config', key: 'dsh-run-watchdog',
-  }, () => <WatchdogForm ctx={ctx} form={form} />));
+    name: 'plugins.bundle.config', key: 'dsh-run-watchdog', locale: NS,
+  }, ({ t }) => <WatchdogPage t={t as T} page={page} />));
 }

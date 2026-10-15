@@ -5,3 +5,6 @@ dist/
 .integration/
 .integration-*.txt
 *.tgz
+
+# Local validation notes, screenshots and recordings
+docs/
