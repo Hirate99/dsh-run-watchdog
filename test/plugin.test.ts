@@ -6,6 +6,11 @@ import Prompt from '@deepseek-ai/dsh-system-prompt';
 import Jobs from '@deepseek-ai/dsh-jobs-local';
 import { ToolCallId } from '@deepseek-ai/dsh-llm';
 import * as plugin from '../src/index.js';
+import Credentials from '@deepseek-ai/dsh-credentials-local';
+import { credentialRef } from '@deepseek-ai/dsh-credentials';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 for (const shell of ['bash', 'pwsh']) test(`mounted plugin: nested ${shell} policy applies; purpose validated; finished job returned`, async () => {
   const ctx = new Context();
@@ -27,7 +32,10 @@ for (const shell of ['bash', 'pwsh']) test(`mounted plugin: nested ${shell} poli
       return { jobId };
     },
   }));
-  process.env.WATCHDOG_TEST_KEY = 'unused-fixture-key';
+  const home = mkdtempSync(join(tmpdir(), 'watchdog-credentials-'));
+  const credentials = ctx.plugin(Credentials, { dshHome: home, watch: false }); await credentials;
+  if (shell === 'bash') process.env.WATCHDOG_TEST_KEY = 'unused-fixture-key';
+  else await ctx.credentials.set(credentialRef('WATCHDOG_TEST_KEY'), 'unused-ui-saved-key');
   const watchdog = ctx.plugin(plugin, { apiKeyEnv: 'WATCHDOG_TEST_KEY' }); await watchdog;
   const run = (args: unknown) => ctx.tools.execute({ name: 'watch_run', callId: ToolCallId('fixture'), arguments: args, signal: new AbortController().signal });
   try {
@@ -46,5 +54,6 @@ for (const shell of ['bash', 'pwsh']) test(`mounted plugin: nested ${shell} poli
   } finally {
     delete process.env.WATCHDOG_TEST_KEY;
     await watchdog.dispose(); controller(); await jobs.dispose(); await tools.dispose(); await prompt.dispose();
+    await credentials.dispose(); rmSync(home, { recursive: true, force: true });
   }
 });

@@ -25,6 +25,8 @@
 
 已验证接口：`tools.execute` 嵌套调用、`jobs.readAt` 独立游标、`jobs.events.subscribe`、`jobs.kill/wait`。主分支与早期 npm 版本存在差异；升级要重跑集成测试。
 
+Desktop 安装与 UI 密钥配置见 [Desktop 接入](docs/desktop.md)。在线样例结果见 [真实进程测试](docs/live-results.md)。
+
 ## 构建与接入
 
 需要 Node.js >= 22.19。
