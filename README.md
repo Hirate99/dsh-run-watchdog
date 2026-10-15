@@ -10,7 +10,7 @@ Supports **DeepSeek and Jev**. Version **0.1.0**.
 
 ![Training alert in DSH Desktop](assets/training-alert.gif)
 
-A real Desktop conversation, recorded at normal speed: 10 seconds, 1920 × 1080. The user asked to train an energy prediction model; the agent started the job and attached monitoring on its own. After a NaN alert, the output wait was cancelled so the agent could respond. The agent then chose to stop training; the plugin's automatic stopping was disabled.
+The watchdog catches NaN during training and alerts the agent.
 
 ## Installation
 

@@ -10,7 +10,7 @@
 
 ![Desktop 中的训练异常提醒](assets/training-alert.gif)
 
-真实 Desktop 会话，10 秒原速，1920 × 1080。用户只要求训练设备能耗预测模型，Agent 自主启动任务并附加监测；发现 NaN 后收到提醒。画面中的等待取消用于释放 Agent，随后停止训练是 Agent 的决定，插件自动停止未开启。
+训练出现 NaN，watchdog 及时提醒 Agent。
 
 ## 安装
 
