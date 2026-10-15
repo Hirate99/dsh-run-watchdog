@@ -24,7 +24,7 @@ https://github.com/OWNER/REPOSITORY/releases/download/v0.1.0/dsh-run-watchdog-0.
 
 这是地址模板，并非已发布的下载地址。当前仓库尚未配置 GitHub remote 或发布 Release；发布后需替换 `OWNER/REPOSITORY`。Desktop 使用自带运行时，使用预构建包无需自行执行 npm 命令。
 
-Desktop 也接受 `https://github.com/OWNER/REPOSITORY` 形式的仓库链接。不过本仓库忽略了 `dist/`，直接安装源码尚未验证，不能与预构建安装包视为等价。发布安装包时应运行下方构建步骤，并将生成的 `.tgz` 上传到 GitHub Release。
+Desktop 也接受仓库地址本身。Git 安装通过包内 `prepare` 脚本构建 `dist/`，宿主可能提示授权依赖构建脚本。这条路径尚未在 Desktop 中针对远端仓库验证；推荐使用已包含构建产物的 Release 安装包。
 
 ### 从源码构建
 
@@ -113,3 +113,9 @@ npm run smoke -- deepseek
 | `src/settings.ts`、`src/client.tsx` | 凭据、连接测试与配置界面 |
 
 `docs/` 和 `.integration/` 用于本地验证记录，不纳入版本控制；README 演示素材保存在 `assets/`。
+
+## CI 与发布
+
+推送 main 或创建 PR 时，GitHub Actions 使用 Node.js 24 在 Windows 和 Linux 上运行完整检查，并分别上传可安装的 `.tgz` 产物。测试使用本地样例，无需 API 密钥。
+
+发布时推送与 package.json 一致的标签（当前为 v0.1.0）。两个平台都通过后，工作流才创建 GitHub Release 并上传安装包。使用内置 GitHub Token，不需要 npm Token；不会自动覆盖已有 Release。

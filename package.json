@@ -8,7 +8,7 @@
     "build": "tsc && node scripts/build-client.mjs",
     "check": "npm run build && tsc -p tsconfig.test.json && npm test",
     "smoke": "tsx scripts/smoke.ts",
-    "prepack": "npm run build"
+    "prepare": "npm run build"
   },
   "keywords": [
     "dsh-plugin",

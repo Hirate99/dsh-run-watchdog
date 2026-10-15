@@ -24,7 +24,7 @@ https://github.com/OWNER/REPOSITORY/releases/download/v0.1.0/dsh-run-watchdog-0.
 
 This is a URL template, not a published download. This repository currently has no GitHub remote or published release. Replace `OWNER/REPOSITORY` after publishing. Desktop uses its bundled runtime; installing a prebuilt package does not require running npm commands yourself.
 
-Desktop also accepts repository URLs such as `https://github.com/OWNER/REPOSITORY`. However, this repository excludes `dist/` from Git, and direct installation from source has not been verified. Use a built release package for distribution: follow the build steps below and upload the resulting `.tgz` to the release.
+Desktop also accepts the repository URL itself. Git installs use the package's `prepare` script to build `dist/`; the host may ask you to allow dependency build scripts. This path has not yet been tested in Desktop against the remote repository. The release package contains prebuilt files and remains the recommended installation method.
 
 ### Build from source
 
@@ -113,3 +113,9 @@ Set `WATCHDOG_MODEL` to override the test model. Offline tests do not establish 
 | `src/settings.ts`, `src/client.tsx` | Credentials, connection tests, and settings UI |
 
 `docs/` and `.integration/` contain local verification artifacts and are excluded from version control. README demo assets live in `assets/`.
+
+## CI and releases
+
+GitHub Actions runs the full checks on Windows and Linux with Node.js 24 for pushes to `main` and pull requests. Each job uploads an installable `.tgz` artifact. Tests use local fixtures and do not need API keys.
+
+To publish a release, push a tag matching `package.json` (currently `v0.1.0`). Both platforms must pass before the workflow creates the GitHub Release and uploads the package. Publishing uses the built-in GitHub token; no npm token is needed. Existing releases are not overwritten automatically.
