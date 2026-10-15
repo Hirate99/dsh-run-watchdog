@@ -50,7 +50,7 @@ export function registerConnectionTest(ctx: Context, currentConfig: () => Config
         } catch (error) {
           // Never forward vendor bodies, URLs, or credentials to diagnostics.
           const message = error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')
-            ? '请求超时或已取消；这不代表密钥无效。' : '连接测试失败，请检查密钥、模型和服务状态。';
+            ? '连接超时或已取消' : '连接失败';
           return Response.json({ error: message }, { status: 502 });
         }
       },
