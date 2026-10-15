@@ -22,7 +22,7 @@ Open **Plugins → Add plugin**, paste the repository URL, then select **Install
 https://github.com/Hirate99/dsh-run-watchdog
 ```
 
-Configure it under **Plugins → dsh-run-watchdog**. The repository includes the built plugin; installation does not run build scripts or require a build allowlist entry. CI verifies that the committed build matches the source.
+Configure it under **Plugins → dsh-run-watchdog**.
 
 The [v0.1.0 release package](https://github.com/Hirate99/dsh-run-watchdog/releases/download/v0.1.0/dsh-run-watchdog-0.1.0.tgz) is also available. Release assets are fixed snapshots; the repository URL follows the default branch.
 

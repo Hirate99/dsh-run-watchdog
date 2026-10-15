@@ -22,7 +22,7 @@
 https://github.com/Hirate99/dsh-run-watchdog
 ```
 
-在 **插件 → dsh-run-watchdog** 中配置。仓库已包含构建产物，安装时不执行构建脚本，也不需要添加构建白名单。CI 会检查提交的产物与源码一致。
+在 **插件 → dsh-run-watchdog** 中配置。
 
 也可使用 [v0.1.0 安装包](https://github.com/Hirate99/dsh-run-watchdog/releases/download/v0.1.0/dsh-run-watchdog-0.1.0.tgz)。Release 安装包是固定快照，仓库地址跟随默认分支。
 
