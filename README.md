@@ -19,12 +19,12 @@ A real Desktop conversation, recorded at normal speed: 10 seconds, 1920 × 1080.
 Open **Plugins → Add plugin**, paste the URL of the built `.tgz` package from a GitHub Release, then select **Install → Enable now**. Configure it under **Plugins → dsh-run-watchdog**.
 
 ```text
-https://github.com/OWNER/REPOSITORY/releases/download/v0.1.0/dsh-run-watchdog-0.1.0.tgz
+https://github.com/Hirate99/dsh-run-watchdog/releases/download/v0.1.0/dsh-run-watchdog-0.1.0.tgz
 ```
 
-This is a URL template, not a published download. This repository currently has no GitHub remote or published release. Replace `OWNER/REPOSITORY` after publishing. Desktop uses its bundled runtime; installing a prebuilt package does not require running npm commands yourself.
+The package link becomes available when the `v0.1.0` release workflow completes. Desktop uses its bundled runtime; installing a prebuilt package does not require running npm commands yourself.
 
-Desktop also accepts the repository URL itself. Git installs use the package's `prepare` script to build `dist/`; the host may ask you to allow dependency build scripts. This path has not yet been tested in Desktop against the remote repository. The release package contains prebuilt files and remains the recommended installation method.
+Desktop also accepts the repository URL itself: `https://github.com/Hirate99/dsh-run-watchdog`. Git installs use the package's `prepare` script to build `dist/`; the host may ask you to allow dependency build scripts. This path has not yet been tested in Desktop against the remote repository. The release package contains prebuilt files and remains the recommended installation method.
 
 ### Build from source
 

@@ -19,12 +19,12 @@
 打开 **插件 → 添加插件**，粘贴 GitHub Release 中已构建的 `.tgz` 安装包链接，点击 **安装 → 立即启用**。然后进入 **插件 → dsh-run-watchdog** 配置。
 
 ```text
-https://github.com/OWNER/REPOSITORY/releases/download/v0.1.0/dsh-run-watchdog-0.1.0.tgz
+https://github.com/Hirate99/dsh-run-watchdog/releases/download/v0.1.0/dsh-run-watchdog-0.1.0.tgz
 ```
 
-这是地址模板，并非已发布的下载地址。当前仓库尚未配置 GitHub remote 或发布 Release；发布后需替换 `OWNER/REPOSITORY`。Desktop 使用自带运行时，使用预构建包无需自行执行 npm 命令。
+v0.1.0 发布工作流完成后，安装包链接即可使用。Desktop 使用自带运行时，使用预构建包无需自行执行 npm 命令。
 
-Desktop 也接受仓库地址本身。Git 安装通过包内 `prepare` 脚本构建 `dist/`，宿主可能提示授权依赖构建脚本。这条路径尚未在 Desktop 中针对远端仓库验证；推荐使用已包含构建产物的 Release 安装包。
+Desktop 也接受仓库地址本身：`https://github.com/Hirate99/dsh-run-watchdog`。Git 安装通过包内 `prepare` 脚本构建 `dist/`，宿主可能提示授权依赖构建脚本。这条路径尚未在 Desktop 中针对远端仓库验证；推荐使用已包含构建产物的 Release 安装包。
 
 ### 从源码构建
 
