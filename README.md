@@ -48,7 +48,7 @@ Development dependencies are pinned to DSH `0.2.1-alpha.3` and Cordis `4.0.5-alp
 
 ## Configuration
 
-- **DeepSeek** reuses the API key configured in DSH's model settings. Select the monitoring model on the plugin page.
+- **DeepSeek** reuses your signed-in DSH account by default, or the API key in DSH model settings when signed out. Select the monitoring model on the plugin page. Custom endpoints or credential references continue to use API keys.
 - **Jev** shows a dedicated API key field. The key is saved in DSH's credential store.
 - **Shadow mode** is the default: evaluate without notifying or stopping jobs. Set `recordPath` to save decisions.
 - **Enforce mode** delivers alerts to the original conversation and wakes an idle agent.

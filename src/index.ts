@@ -7,8 +7,7 @@ import z from '@deepseek-ai/schemastery';
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { watch, type CheckRecord, type Handoff } from './monitor';
-import { createJudge } from './providers';
-import { registerConnectionTest, resolveKey } from './settings';
+import { registerConnectionTest, resolveJudge } from './settings';
 import { interruptibleOutputWaits } from './interrupt-wait';
 import { jobSnapshot, observeJob } from './jobs';
 export { observeJob } from './jobs';
@@ -120,7 +119,7 @@ export function apply(ctx: Context, runtime: RawConfig): void {
       };
       active.add(id);
       try {
-        const judge = createJudge({ ...config, apiKey: await resolveKey(ctx, config) });
+        const judge = await resolveJudge(ctx, config);
         exec.signal.throwIfAborted();
         const job = observeJob(ctx.jobs, id, owner);
         const unloaded = new AbortController();

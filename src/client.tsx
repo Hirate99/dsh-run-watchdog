@@ -39,7 +39,7 @@ function numberField(field: NumberField, scale: number, valid: (n: number) => bo
 /** Staged form over the plugin's config entry, plus the two credential states the page reports. */
 function createPage(ctx: Context) {
   const scope = ctx.configForms.get<Partial<Config>>('run-watchdog');
-  let keys = { deepseek: false, jev: false };
+  let keys = { deepseek: false, jev: false, account: false };
   let models: readonly { id: string; name: string }[] = [];
   const form = new SettingsFormModel(scope, [
     settingsTextField('provider'), settingsTextField('model'), settingsTextField('mode'),
@@ -67,15 +67,16 @@ function createPage(ctx: Context) {
     const deepseekRef = scope.getSnapshot().value?.apiKeyEnv || 'DEEPSEEK_API_KEY';
     const response = await ctx.remote.credentials.describe([deepseekRef, jevKeyRef]);
     if (!response.ok) return;
-    keys = { deepseek: !!response.value[deepseekRef]?.configured, jev: !!response.value[jevKeyRef]?.configured };
+    const account = await fetch('/api/run-watchdog/account').then(async response =>
+      response.ok && (await response.json()).available === true).catch(() => false);
+    keys = { deepseek: !!response.value[deepseekRef]?.configured, jev: !!response.value[jevKeyRef]?.configured, account };
+    const catalog = await ctx.remote.session.modelCatalog();
+    if (catalog.ok) {
+      models = catalog.value.groups.find(group => group.id === (account ? 'deepseek-account' : 'deepseek-official'))?.models ?? [];
+    }
     store.set(project());
   }
   void readKeys();
-  void ctx.remote.session.modelCatalog().then(result => {
-    if (!result.ok) return;
-    models = result.value.groups.find(group => group.id === 'deepseek-official')?.models ?? [];
-    store.set(project());
-  });
   return { store, actions: form.actions(), readKeys, dispose: () => form.dispose() };
 }
 type Page = ReturnType<typeof createPage>;
@@ -111,8 +112,8 @@ function WatchdogPage({ t, page }: { t: T; page: Page }) {
           <p className="rw-hint">{t('providerHint')}</p>
           {s.provider === 'deepseek' && (
             <p className="rw-hint rw-inline">
-              <StateDot state={s.keys.deepseek ? 'done' : 'warning'} />
-              {t(s.keys.deepseek ? 'deepseekKeySet' : 'deepseekKeyUnset')}
+              <StateDot state={s.keys.deepseek || s.keys.account ? 'done' : 'warning'} />
+              {t(s.keys.account ? 'deepseekAccount' : s.keys.deepseek ? 'deepseekKeySet' : 'deepseekKeyUnset')}
             </p>
           )}
         </div>

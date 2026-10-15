@@ -3,6 +3,7 @@ export declare const en: {
     provider: string;
     providerHint: string;
     deepseekKeySet: string;
+    deepseekAccount: string;
     deepseekKeyUnset: string;
     jevKey: string;
     jevKeyHint: string;

@@ -33,7 +33,8 @@ var en = {
   provider: "Judge",
   providerHint: "A small model that reads the command purpose and recent output at each check.",
   deepseekKeySet: "Uses the DeepSeek API key from Settings \u2192 Models.",
-  deepseekKeyUnset: "No DeepSeek API key yet. Add one in Settings \u2192 Models \u2192 DeepSeek.",
+  deepseekAccount: "Uses your DSH DeepSeek account.",
+  deepseekKeyUnset: "Sign in to DeepSeek in DSH, or add an API key in Settings \u2192 Models.",
   jevKey: "Jev API key",
   jevKeyHint: "Stored in DSH credentials, never in the settings file. Leave blank to keep the current key.",
   jevKeySet: "A key is configured.",
@@ -75,7 +76,8 @@ var zh = {
   provider: "\u5224\u65AD\u670D\u52A1",
   providerHint: "\u6BCF\u6B21\u68C0\u67E5\u65F6\uFF0C\u7531\u4E00\u4E2A\u5C0F\u6A21\u578B\u7ED3\u5408\u547D\u4EE4\u76EE\u7684\u548C\u8FD1\u671F\u8F93\u51FA\u505A\u5224\u65AD\u3002",
   deepseekKeySet: "\u590D\u7528 \u8BBE\u7F6E \u2192 \u6A21\u578B \u4E2D\u7684 DeepSeek API Key\u3002",
-  deepseekKeyUnset: "\u5C1A\u672A\u914D\u7F6E DeepSeek API Key\uFF0C\u8BF7\u5728 \u8BBE\u7F6E \u2192 \u6A21\u578B \u2192 DeepSeek \u4E2D\u6DFB\u52A0\u3002",
+  deepseekAccount: "\u590D\u7528 DSH \u7684 DeepSeek \u767B\u5F55\u3002",
+  deepseekKeyUnset: "\u8BF7\u767B\u5F55 DSH \u7684 DeepSeek \u8D26\u53F7\uFF0C\u6216\u5728 \u8BBE\u7F6E \u2192 \u6A21\u578B \u4E2D\u6DFB\u52A0 API Key\u3002",
   jevKey: "Jev API Key",
   jevKeyHint: "\u4FDD\u5B58\u5728 DSH \u51ED\u636E\u4E2D\uFF0C\u4E0D\u5199\u5165\u8BBE\u7F6E\u6587\u4EF6\u3002\u7559\u7A7A\u8868\u793A\u4FDD\u6301\u5F53\u524D\u5BC6\u94A5\u3002",
   jevKeySet: "\u5DF2\u914D\u7F6E\u5BC6\u94A5\u3002",
@@ -131,7 +133,7 @@ function numberField(field, scale, valid) {
 }
 function createPage(ctx) {
   const scope = ctx.configForms.get("run-watchdog");
-  let keys = { deepseek: false, jev: false };
+  let keys = { deepseek: false, jev: false, account: false };
   let models = [];
   const form = new import_dsh_client_ui_primitives.SettingsFormModel(scope, [
     (0, import_dsh_client_ui_primitives.settingsTextField)("provider"),
@@ -161,15 +163,15 @@ function createPage(ctx) {
     const deepseekRef = scope.getSnapshot().value?.apiKeyEnv || "DEEPSEEK_API_KEY";
     const response = await ctx.remote.credentials.describe([deepseekRef, jevKeyRef]);
     if (!response.ok) return;
-    keys = { deepseek: !!response.value[deepseekRef]?.configured, jev: !!response.value[jevKeyRef]?.configured };
+    const account = await fetch("/api/run-watchdog/account").then(async (response2) => response2.ok && (await response2.json()).available === true).catch(() => false);
+    keys = { deepseek: !!response.value[deepseekRef]?.configured, jev: !!response.value[jevKeyRef]?.configured, account };
+    const catalog = await ctx.remote.session.modelCatalog();
+    if (catalog.ok) {
+      models = catalog.value.groups.find((group) => group.id === (account ? "deepseek-account" : "deepseek-official"))?.models ?? [];
+    }
     store.set(project());
   }
   void readKeys();
-  void ctx.remote.session.modelCatalog().then((result) => {
-    if (!result.ok) return;
-    models = result.value.groups.find((group) => group.id === "deepseek-official")?.models ?? [];
-    store.set(project());
-  });
   return { store, actions: form.actions(), readKeys, dispose: () => form.dispose() };
 }
 function WatchdogPage({ t, page }) {
@@ -220,8 +222,8 @@ function WatchdogPage({ t, page }) {
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { id: `run-watchdog-provider-${s.provider}-panel`, role: "tabpanel", "aria-labelledby": `run-watchdog-provider-${s.provider}`, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: "rw-hint", children: t("providerHint") }),
             s.provider === "deepseek" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { className: "rw-hint rw-inline", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.StateDot, { state: s.keys.deepseek ? "done" : "warning" }),
-              t(s.keys.deepseek ? "deepseekKeySet" : "deepseekKeyUnset")
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.StateDot, { state: s.keys.deepseek || s.keys.account ? "done" : "warning" }),
+              t(s.keys.account ? "deepseekAccount" : s.keys.deepseek ? "deepseekKeySet" : "deepseekKeyUnset")
             ] })
           ] })
         ] }),

@@ -1,4 +1,5 @@
 import type { Judge } from './decision';
+import { type LlmRuntime } from '@deepseek-ai/dsh-llm';
 export interface ProviderConfig {
     provider: 'jev' | 'deepseek';
     apiKey: string;
@@ -10,3 +11,5 @@ export declare const defaultBaseURL: {
     readonly deepseek: 'https://api.deepseek.com';
 };
 export declare const createJudge: (config: ProviderConfig) => Judge;
+/** Let DSH own account authentication and transport. */
+export declare function accountJudge(llm: LlmRuntime, model: string): Judge;

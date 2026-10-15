@@ -1,4 +1,5 @@
 import type { Choice, Judge, Verdict } from './decision';
+import { ReasoningEffortId, type LlmRuntime } from '@deepseek-ai/dsh-llm';
 
 export interface ProviderConfig {
   provider: 'jev' | 'deepseek';
@@ -58,3 +59,21 @@ function deepseek({ apiKey, model, baseURL = defaultBaseURL.deepseek }: Provider
 }
 
 export const createJudge = (config: ProviderConfig): Judge => (config.provider === 'jev' ? jev : deepseek)(config);
+
+/** Let DSH own account authentication and transport. */
+export function accountJudge(llm: LlmRuntime, model: string): Judge {
+  return {
+    async decide(state, options, signal) {
+      let text = '';
+      const chunks = llm.stream({
+        provider: 'deepseek-account', model, reasoningEffort: ReasoningEffortId('off'), maxTokens: 128, signal,
+        system: `${instructions}\nReturn JSON only: {"choice":"<option key>"}. Options: ${JSON.stringify(options)}`,
+        messages: [{ role: 'user', content: [{ type: 'text', text: JSON.stringify(state) }] }],
+      });
+      for await (const chunk of chunks) {
+        if (chunk.type === 'text-delta') text += chunk.text;
+      }
+      return verdict(options, JSON.parse(text).choice);
+    },
+  };
+}
