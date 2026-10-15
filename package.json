@@ -1,0 +1,56 @@
+{
+  "name": "dsh-run-watchdog",
+  "version": "0.1.0",
+  "description": "Purpose-aware monitoring for DeepSeek Harness long-running commands",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "tsx --test test/*.test.ts",
+    "build": "tsc",
+    "check": "npm run build && tsc -p tsconfig.test.json && npm test",
+    "smoke": "tsx scripts/smoke.ts"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "watchdog",
+    "jev"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@deepseek-ai/schemastery": "3.18.5-alpha.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.0.5-alpha.2",
+    "@deepseek-ai/dsh-jobs": "0.2.1-alpha.3",
+    "@deepseek-ai/dsh-jobs-local": "0.2.1-alpha.3",
+    "@deepseek-ai/dsh-llm": "0.2.1-alpha.3",
+    "@deepseek-ai/dsh-session": "0.2.1-alpha.3",
+    "@deepseek-ai/dsh-system-prompt": "0.2.1-alpha.3",
+    "@deepseek-ai/dsh-tools": "0.2.1-alpha.3",
+    "@types/node": "26.6.5",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2"
+  },
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.19"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "4.0.5-alpha.2",
+    "@deepseek-ai/dsh-jobs": "0.2.1-alpha.3",
+    "@deepseek-ai/dsh-llm": "0.2.1-alpha.3",
+    "@deepseek-ai/dsh-session": "0.2.1-alpha.3",
+    "@deepseek-ai/dsh-tools": "0.2.1-alpha.3"
+  }
+}
