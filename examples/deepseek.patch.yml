@@ -1,0 +1,7 @@
+- id: run-watchdog
+  config:
+    provider: deepseek
+    model: deepseek-flash
+    apiKeyEnv: DEEPSEEK_API_KEY
+    mode: shadow
+    recordPath: ./watchdog-checks.jsonl

@@ -4,7 +4,7 @@
 
 ## 第一版范围
 
-提供 `watch_run`，主 Agent 必须填写 `purpose` 和 `command`。工具通过 **原有 bash 工具的完整权限链** 启动后台 job，再用独立游标观察输出。不会替换所有 shell 调用，不自行启动另一套 shell，也不自动修复或重试命令。
+提供 `watch_run`，主 Agent 必须填写 `purpose` 和 `command`。工具通过 **原有 bash/pwsh 工具的完整权限链** 启动后台 job，再用独立游标观察输出。不会替换所有 shell 调用，不自行启动另一套 shell，也不自动修复或重试命令。
 
 默认 10 秒首次检查。后续选项是 `check_10s / check_30s / check_60s / check_120s / check_300s / check_600s / notify_agent / stop / uncertain`。只有 `service: true` 且日志已匹配 `ready_pattern` 时，才提供 `no_more_checks`。
 
@@ -32,8 +32,11 @@
 ```sh
 npm ci
 npm run check
-dsh plugin --profile <你的配置名> add <此仓库的绝对路径>
+npx dsh plugin --profile <你的配置名> add <此仓库的绝对路径>
+npx dsh --profile <你的配置名> --patch ./examples/deepseek.patch.yml
 ```
+
+包内 `dsh.bundle.patch` 会自动注册插件，不需要手动添加组件。插件还向主 Agent 注入使用 `watch_run` 的说明。
 
 如果宿主直接通过 Cordis 配置加载包，插件条目示例如下（应放入已有的工具组合层，保留该配置原来的其他插件）：
 
@@ -47,7 +50,7 @@ dsh plugin --profile <你的配置名> add <此仓库的绝对路径>
     recordPath: ./watchdog-checks.jsonl
 ```
 
-宿主需已有 `tools`、`jobs`、支持 `run_in_background` 的 `bash`，以及 `job_output/job_kill` 控制工具。原生仅提供 `pwsh` 的配置暂不支持；不要将该插件当成通用 Windows shell 适配器。
+宿主需已有 `tools`、`jobs`、`systemPrompt`、支持 `run_in_background` 的原生 `bash` 或 `pwsh`，以及 job 控制工具。`shellTool: auto` 在 Windows 优先选择 pwsh，其他平台优先 bash；也可明确指定。标准 DSH web 的 standard / ptc / cordis preset 提供所需工具；minimal 的 persistent shell 不支持这条后台 job 接口。插件按调用 Agent 查找原生工具，不绕过其权限规则。
 
 Jev 配置将上面的三个字段替换为：
 
@@ -68,7 +71,7 @@ apiKeyEnv: TYPESAFE_API_KEY
 }
 ```
 
-配置项另包括 `firstCheckMs`（10000）、`judgeTimeoutMs`（8000）、`stopThreshold`（0.8）和 `baseURL`。baseURL 是 API 根路径：Jev 为 `https://api.typesafe.ai/v1`，DeepSeek 为 `https://api.deepseek.com`。没有密钥时插件加载失败，不会先启动一个无法监控的命令。
+配置项另包括 `firstCheckMs`（10000）、`judgeTimeoutMs`（8000）、`stopThreshold`（0.8）和 `baseURL`。baseURL 是 API 根路径：Jev 为 `https://api.typesafe.ai/v1`，DeepSeek 为 `https://api.deepseek.com`。密钥优先从 DSH credentials 服务读取，其次读取指定环境变量。缺少密钥时插件仍可加载，但 watch_run 在启动命令前报错。也可用 Node 的 `--env-file=<已有环境文件>` 启动 DSH 或 smoke，无需复制密钥。
 
 命令、目的和最多 16000 字符的近期日志会发送给所选模型供应商。启用 recordPath 后，本地 JSONL 也记录这些内容；这是原始运行证据，不承诺自动脱敏。不要对包含秘密的输出启用远程判断。原始日志仍由 DSH 保存；监控不移动主 Agent 的读取游标。
 
@@ -83,7 +86,7 @@ apiKeyEnv: TYPESAFE_API_KEY
 | 决策单元测试 | argmax 停止陷阱、独立阈值、DeepSeek 只提醒、常驻服务限制 |
 | 观察循环 | 重复日志、提醒不杀任务、完成取消模型请求、shadow 不执行、失败回退、用户取消 |
 | HTTP 契约 | 本地 HTTP 服务验证两类请求格式、Jev 概率分布校验、DeepSeek JSON 与非思考模式 |
-| DSH 集成 | 真实 Cordis/工具运行时挂载、必填目的、原有 bash 权限拒绝仍生效 |
+| DSH 集成 | 真实 Cordis/工具运行时挂载、必填目的、原有 bash/pwsh 权限拒绝仍生效 |
 | 进程集成 | 真实 Job Registry 管理真实 Node 子进程，取消及输出游标互不影响 |
 
 在线 smoke 只发送合成故障数据，不运行命令：
@@ -115,4 +118,10 @@ npm run smoke -- deepseek
 - [Jev Choice](https://docs.typesafe.ai/primitives/choice)：state + questions → choice/probabilities/confidence；不生成解释文字。
 - [DeepSeek Chat Completions](https://api-docs.deepseek.com/api/create-chat-completion/)：默认使用 deepseek-flash、JSON 输出和关闭思考模式。
 
-尚未完成：实际供应商请求、完整 DSH UI 会话使用、真实 bash 执行器的进程树取消测试。当前进程集成测试验证单个真实子进程；DSH 负责其执行器的进程树行为。
+2026-10-14 本地验证：
+
+- 隔离 DSH profile 通过官方 plugin add 安装本仓库；组合配置包含插件，Web 插件详情显示组件运行中（截图见 `docs/dsh-plugin-running.jpg`）。
+- 使用 `examples/probe.patch.yml` 在真实 DSH 宿主执行原生 pwsh，watch_run 返回 `finished`、`completed`、退出码 0 和 `watchdog-native-ok`。探针只跑短命令，不调用模型；它额外启用根作用域 shell/jobs，因为没有会话 Agent。仅用于测试 profile。
+- 从已有项目环境文件读取 DeepSeek 密钥，`/models` 鉴权成功。实际生成请求在 15～60 秒内未完成；流式请求仅收到保活。未确认在线判断成功，未测 Jev。
+
+尚未完成：主 Agent 在 UI 会话中自动选择 watch_run 的完整流程、真实 shell 执行器的进程树取消测试。当前进程集成测试验证单个真实子进程；DSH 负责其执行器的进程树行为。

@@ -7,7 +7,7 @@ import Jobs from '@deepseek-ai/dsh-jobs-local';
 import { ToolCallId } from '@deepseek-ai/dsh-llm';
 import * as plugin from '../src/index.js';
 
-test('mounted plugin: nested bash policy still applies; purpose validated; finished job returned', async () => {
+for (const shell of ['bash', 'pwsh']) test(`mounted plugin: nested ${shell} policy applies; purpose validated; finished job returned`, async () => {
   const ctx = new Context();
   const prompt = ctx.plugin(Prompt); await prompt;
   const tools = ctx.plugin(Tools); await tools;
@@ -15,7 +15,7 @@ test('mounted plugin: nested bash policy still applies; purpose validated; finis
   const controller = ctx.jobs.attachController('test');
   let starts = 0;
   ctx.tools.register(defineTool({
-    name: 'bash', description: 'test job producer',
+    name: shell, description: 'test job producer',
     parameters: { command: { type: 'string', required: true }, run_in_background: { type: 'boolean' } },
     output: { schema: { type: 'object', additionalProperties: false, properties: { jobId: { type: 'string', required: true } } }, render: (_args, value) => [{ type: 'text', text: value.jobId }] },
     async execute() {
@@ -32,7 +32,7 @@ test('mounted plugin: nested bash policy still applies; purpose validated; finis
   const run = (args: unknown) => ctx.tools.execute({ name: 'watch_run', callId: ToolCallId('fixture'), arguments: args, signal: new AbortController().signal });
   try {
     assert.equal((await run({ command: 'fixture' })).isError, true);
-    const guard = ctx.tools.guard(exec => exec.name === 'bash' ? 'fixture policy denial' : undefined);
+    const guard = ctx.tools.guard(exec => exec.name === shell ? 'fixture policy denial' : undefined);
     assert.equal((await run({ purpose: 'test', command: 'fixture' })).isError, true);
     assert.equal(starts, 0);
     guard();

@@ -1,0 +1,3 @@
+- insert:
+    - id: run-watchdog
+      name: dsh-run-watchdog

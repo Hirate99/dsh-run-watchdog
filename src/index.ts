@@ -3,6 +3,8 @@ import { defineTool } from '@deepseek-ai/dsh-tools';
 import { JobId, type JobRegistry } from '@deepseek-ai/dsh-jobs';
 import { ToolCallId } from '@deepseek-ai/dsh-llm';
 import type { SessionId } from '@deepseek-ai/dsh-session';
+import { credentialRef } from '@deepseek-ai/dsh-credentials';
+import type {} from '@deepseek-ai/dsh-system-prompt';
 import z from '@deepseek-ai/schemastery';
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -10,7 +12,7 @@ import { monitor, type MonitorConfig, type RunningJob } from './monitor.js';
 import { createJudge } from './providers.js';
 
 export const name = 'run-watchdog';
-export const inject = ['tools', 'jobs'];
+export const inject = ['tools', 'jobs', 'systemPrompt'];
 export interface Config {
   provider: 'deepseek' | 'jev';
   model: string;
@@ -22,6 +24,7 @@ export interface Config {
   stopThreshold: number;
   allowAutoStop: boolean;
   recordPath?: string;
+  shellTool: 'auto' | 'bash' | 'pwsh';
 }
 export const Config = z.object({
   provider: z.union(['deepseek', 'jev']).default('deepseek'),
@@ -34,6 +37,7 @@ export const Config = z.object({
   stopThreshold: z.number().min(0.5).max(1).default(0.8),
   allowAutoStop: z.boolean().default(false),
   recordPath: z.string(),
+  shellTool: z.union(['auto', 'bash', 'pwsh']).default('auto'),
 });
 
 /** Independent ring cursor: monitoring never consumes the agent's output. */
@@ -58,13 +62,20 @@ export function observeJob(jobs: JobRegistry, id: JobId, owner?: SessionId): Run
 }
 
 export function apply(ctx: Context, config: Config): void {
-  const apiKey = process.env[config.apiKeyEnv];
-  if (!apiKey) throw new Error(`Missing ${config.apiKeyEnv}; configure a judge before starting watched commands`);
-  const judge = createJudge({ ...config, apiKey });
+  const resolveKey = async () => {
+    const stored = await ctx.get('credentials')?.resolve(credentialRef(config.apiKeyEnv));
+    const apiKey = stored?.value ?? process.env[config.apiKeyEnv];
+    if (!apiKey) throw new Error(`Missing ${config.apiKeyEnv}; configure a judge before starting watched commands`);
+    return apiKey;
+  };
+  ctx.systemPrompt.section({
+    name: 'tool:watch-run', order: 95,
+    text: 'Use watch_run for commands expected to take more than 10 seconds. Supply purpose (what the command must achieve), and optionally success_signal. Use the same native shell syntax as the shell tool. Keep ordinary shell tools for short commands. When watch_run returns notify, inspect its evidence and existing jobId; do not blindly launch the same command again. Use job_output or job_kill to manage a live returned job. detached means monitoring ended, not that the process stopped. Never set auto_stop for deployment or migration commands.',
+  });
   if (config.recordPath) mkdirSync(dirname(config.recordPath), { recursive: true });
   ctx.tools.register(defineTool({
     name: 'watch_run',
-    description: 'Run a long command with purpose-aware monitoring. Delegates to bash and its existing permission policy. Returns on completion or when your attention is needed; a returned live job remains controllable through job_output/job_kill. Logs and purpose are sent to the configured judge.',
+    description: 'Run a long command with purpose-aware monitoring. Delegates to the native bash/pwsh tool and its existing permission policy. Returns on completion or when your attention is needed; a returned live job remains controllable through job_output/job_kill. Logs and purpose are sent to the configured judge.',
     parameters: {
       purpose: { type: 'string', required: true, description: 'Why this command runs and what useful progress means.' },
       command: { type: 'string', required: true },
@@ -87,10 +98,14 @@ export function apply(ctx: Context, config: Config): void {
     },
     async execute(args, exec) {
       if (!args.purpose.trim() || !args.command.trim()) throw new Error('purpose and command must be nonempty');
-      const bash = ctx.tools.get('bash', exec.agent);
-      if (!bash || !JSON.stringify(bash.parameters).includes('run_in_background')) throw new Error('watch_run requires a bash tool with background jobs enabled');
+      const apiKey = await resolveKey();
+      const judge = createJudge({ ...config, apiKey });
+      const preferred = process.platform === 'win32' ? ['pwsh', 'bash'] : ['bash', 'pwsh'];
+      const toolName = config.shellTool === 'auto' ? preferred.find(name => ctx.tools.get(name, exec.agent)) : config.shellTool;
+      const shell = toolName && ctx.tools.get(toolName, exec.agent);
+      if (!shell || !Object.hasOwn(shell.parameters.properties ?? {}, 'run_in_background')) throw new Error('watch_run requires a native shell tool with background jobs enabled');
       const result = await ctx.tools.execute({
-        name: 'bash', callId: ToolCallId(`${exec.callId}:watchdog`), rootCallId: exec.rootCallId,
+        name: toolName!, callId: ToolCallId(`${exec.callId}:watchdog`), rootCallId: exec.rootCallId,
         parent: exec.token, agent: exec.agent, signal: exec.signal,
         arguments: { command: args.command, description: args.purpose, run_in_background: true, ...(args.workdir ? { workdir: args.workdir } : {}) },
       });
@@ -98,7 +113,7 @@ export function apply(ctx: Context, config: Config): void {
       if (result.isError) throw new Error(result.content.filter(b => b.type === 'text').map(b => b.text).join('\n'));
       if (result.concludesTurn) exec.concludeTurn();
       const value = result.value;
-      if (!value || typeof value !== 'object' || Array.isArray(value) || typeof value.jobId !== 'string') throw new Error('bash did not return a background job id');
+      if (!value || typeof value !== 'object' || Array.isArray(value) || typeof value.jobId !== 'string') throw new Error('shell did not return a background job id');
       const id = JobId(value.jobId);
       const owner = exec.agent?.session.id;
       const job = observeJob(ctx.jobs, id, owner);
