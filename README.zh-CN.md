@@ -4,7 +4,7 @@
 
 结合任务目的和运行日志，判断长任务是否值得继续等待，发现异常时提醒主 Agent。
 
-适用于 DeepSeek Harness 的训练、构建、测试和数据处理任务。支持 **DeepSeek / Jev**，版本 **0.1.0**。
+适用于 DeepSeek Harness 的训练、构建、测试和数据处理任务。支持 **DeepSeek / Jev**，版本 **0.1.1**。
 
 ## 演示
 
@@ -24,7 +24,7 @@ https://github.com/Hirate99/dsh-run-watchdog
 
 在 **插件 → dsh-run-watchdog** 中配置。
 
-也可使用 [v0.1.0 安装包](https://github.com/Hirate99/dsh-run-watchdog/releases/download/v0.1.0/dsh-run-watchdog-0.1.0.tgz)。Release 安装包是固定快照，仓库地址跟随默认分支。
+也可使用 [v0.1.1 安装包](https://github.com/Hirate99/dsh-run-watchdog/releases/download/v0.1.1/dsh-run-watchdog-0.1.1.tgz)。Release 安装包是固定快照，仓库地址跟随默认分支。
 
 ### 从源码构建
 
@@ -36,10 +36,10 @@ npm run check
 npm pack
 ```
 
-在 Desktop 的插件页面安装生成的 `dsh-run-watchdog-0.1.0.tgz` 并启用。也可在完全退出 Desktop 后使用其自带 CLI：
+在 Desktop 的插件页面安装生成的 `dsh-run-watchdog-0.1.1.tgz` 并启用。也可在完全退出 Desktop 后使用其自带 CLI：
 
 ```powershell
-& "$env:LOCALAPPDATA/Programs/DeepSeek Harness/resources/runtime/cli/bin/dsh.cmd" plugin --profile desktop add "<包的绝对路径>/dsh-run-watchdog-0.1.0.tgz"
+& "$env:LOCALAPPDATA/Programs/DeepSeek Harness/resources/runtime/cli/bin/dsh.cmd" plugin --profile desktop add "<包的绝对路径>/dsh-run-watchdog-0.1.1.tgz"
 ```
 
 重新打开 Desktop，在 **插件 → dsh-run-watchdog** 中配置。仓库尚未发布到 npm。
@@ -118,4 +118,4 @@ npm run smoke -- deepseek
 
 推送 main 或创建 PR 时，GitHub Actions 使用 Node.js 24 在 Windows 和 Linux 上运行完整检查，并分别上传可安装的 `.tgz` 产物。测试使用本地样例，无需 API 密钥。
 
-发布时推送与 package.json 一致的标签（当前为 v0.1.0）。两个平台都通过后，工作流才创建 GitHub Release 并上传安装包。使用内置 GitHub Token，不需要 npm Token；不会自动覆盖已有 Release。
+发布时推送与 package.json 一致的标签（当前为 v0.1.1）。两个平台都通过后，工作流才创建 GitHub Release 并上传安装包。使用内置 GitHub Token，不需要 npm Token；不会自动覆盖已有 Release。

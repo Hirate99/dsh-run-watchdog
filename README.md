@@ -4,7 +4,7 @@ English | [简体中文](README.zh-CN.md)
 
 Monitor long-running DeepSeek Harness jobs using their purpose and live output. Alert the main agent when training, builds, tests, or data processing need attention.
 
-Supports **DeepSeek and Jev**. Version **0.1.0**.
+Supports **DeepSeek and Jev**. Version **0.1.1**.
 
 ## Demo
 
@@ -24,7 +24,7 @@ https://github.com/Hirate99/dsh-run-watchdog
 
 Configure it under **Plugins → dsh-run-watchdog**.
 
-The [v0.1.0 release package](https://github.com/Hirate99/dsh-run-watchdog/releases/download/v0.1.0/dsh-run-watchdog-0.1.0.tgz) is also available. Release assets are fixed snapshots; the repository URL follows the default branch.
+The [v0.1.1 release package](https://github.com/Hirate99/dsh-run-watchdog/releases/download/v0.1.1/dsh-run-watchdog-0.1.1.tgz) is also available. Release assets are fixed snapshots; the repository URL follows the default branch.
 
 ### Build from source
 
@@ -36,10 +36,10 @@ npm run check
 npm pack
 ```
 
-Install the generated `dsh-run-watchdog-0.1.0.tgz` through Desktop's plugin page. Alternatively, fully quit Desktop and use its bundled CLI on Windows:
+Install the generated `dsh-run-watchdog-0.1.1.tgz` through Desktop's plugin page. Alternatively, fully quit Desktop and use its bundled CLI on Windows:
 
 ```powershell
-& "$env:LOCALAPPDATA/Programs/DeepSeek Harness/resources/runtime/cli/bin/dsh.cmd" plugin --profile desktop add "<absolute-package-path>/dsh-run-watchdog-0.1.0.tgz"
+& "$env:LOCALAPPDATA/Programs/DeepSeek Harness/resources/runtime/cli/bin/dsh.cmd" plugin --profile desktop add "<absolute-package-path>/dsh-run-watchdog-0.1.1.tgz"
 ```
 
 Reopen Desktop and configure the plugin. This package has not been published to npm.
@@ -118,4 +118,4 @@ Set `WATCHDOG_MODEL` to override the test model. Offline tests do not establish 
 
 GitHub Actions runs the full checks on Windows and Linux with Node.js 24 for pushes to `main` and pull requests. Each job uploads an installable `.tgz` artifact. Tests use local fixtures and do not need API keys.
 
-To publish a release, push a tag matching `package.json` (currently `v0.1.0`). Both platforms must pass before the workflow creates the GitHub Release and uploads the package. Publishing uses the built-in GitHub token; no npm token is needed. Existing releases are not overwritten automatically.
+To publish a release, push a tag matching `package.json` (currently `v0.1.1`). Both platforms must pass before the workflow creates the GitHub Release and uploads the package. Publishing uses the built-in GitHub token; no npm token is needed. Existing releases are not overwritten automatically.
