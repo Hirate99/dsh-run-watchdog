@@ -3,7 +3,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools';
 import { JobId, type JobRegistry } from '@deepseek-ai/dsh-jobs';
 import { ToolCallId } from '@deepseek-ai/dsh-llm';
 import type { SessionId } from '@deepseek-ai/dsh-session';
-import { credentialRef } from '@deepseek-ai/dsh-credentials';
+import { resolveKey, registerConnectionTest } from './settings.js';
 import type {} from '@deepseek-ai/dsh-system-prompt';
 import z from '@deepseek-ai/schemastery';
 import { appendFileSync, mkdirSync } from 'node:fs';
@@ -27,14 +27,14 @@ export interface Config {
   shellTool: 'auto' | 'bash' | 'pwsh';
 }
 export const Config = z.object({
-  provider: z.union(['deepseek', 'jev']).default('deepseek'),
-  model: z.string().default('deepseek-flash'),
+  provider: z.union(['deepseek', 'jev']).default('deepseek').volatile(),
+  model: z.string().default('deepseek-flash').volatile(),
   apiKeyEnv: z.string().default('DEEPSEEK_API_KEY'),
   baseURL: z.string(),
-  mode: z.union(['shadow', 'enforce']).default('shadow'),
-  firstCheckMs: z.number().min(1).default(10_000),
-  judgeTimeoutMs: z.number().min(1).default(8_000),
-  stopThreshold: z.number().min(0.5).max(1).default(0.8),
+  mode: z.union(['shadow', 'enforce']).default('shadow').volatile(),
+  firstCheckMs: z.number().min(1).default(10_000).volatile(),
+  judgeTimeoutMs: z.number().min(1).default(8_000).volatile(),
+  stopThreshold: z.number().min(0.5).max(1).default(0.8).volatile(),
   allowAutoStop: z.boolean().default(false),
   recordPath: z.string(),
   shellTool: z.union(['auto', 'bash', 'pwsh']).default('auto'),
@@ -61,13 +61,14 @@ export function observeJob(jobs: JobRegistry, id: JobId, owner?: SessionId): Run
   };
 }
 
-export function apply(ctx: Context, config: Config): void {
-  const resolveKey = async () => {
-    const stored = await ctx.get('credentials')?.resolve(credentialRef(config.apiKeyEnv));
-    const apiKey = stored?.value ?? process.env[config.apiKeyEnv];
-    if (!apiKey) throw new Error(`Missing ${config.apiKeyEnv}; configure a judge before starting watched commands`);
-    return apiKey;
-  };
+export function readConfig(config: ReturnType<typeof Config>): Config {
+  return { ...config, provider: config.provider.get(), model: config.model.get(), mode: config.mode.get(),
+    firstCheckMs: config.firstCheckMs.get(), judgeTimeoutMs: config.judgeTimeoutMs.get(), stopThreshold: config.stopThreshold.get() };
+}
+
+export function apply(ctx: Context, runtime: ReturnType<typeof Config>): void {
+  const config = readConfig(runtime);
+  registerConnectionTest(ctx, () => readConfig(runtime));
   ctx.systemPrompt.section({
     name: 'tool:watch-run', order: 95,
     text: 'Use watch_run for commands expected to take more than 10 seconds. Supply purpose (what the command must achieve), and optionally success_signal. Use the same native shell syntax as the shell tool. Keep ordinary shell tools for short commands. When watch_run returns notify, inspect its evidence and existing jobId; do not blindly launch the same command again. Use job_output or job_kill to manage a live returned job. detached means monitoring ended, not that the process stopped. Never set auto_stop for deployment or migration commands.',
@@ -97,8 +98,9 @@ export function apply(ctx: Context, config: Config): void {
       render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
     },
     async execute(args, exec) {
+      const config = readConfig(runtime);
       if (!args.purpose.trim() || !args.command.trim()) throw new Error('purpose and command must be nonempty');
-      const apiKey = await resolveKey();
+      const apiKey = await resolveKey(ctx, config);
       const judge = createJudge({ ...config, apiKey });
       const preferred = process.platform === 'win32' ? ['pwsh', 'bash'] : ['bash', 'pwsh'];
       const toolName = config.shellTool === 'auto' ? preferred.find(name => ctx.tools.get(name, exec.agent)) : config.shellTool;

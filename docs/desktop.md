@@ -4,7 +4,7 @@
 
 2026-10-14 检查到官方 Desktop 0.2.0-rc.2（构建 04f392c9ddd144fa426da2045178797da6db6c11），Cordis 4.0.4，Electron Node 24.18.1。
 
-`scripts/check-desktop.cjs` 将插件测试的 DSH 导入指向安装包内的真实依赖，并用安装版 Electron 的 Node 模式执行。bash/pwsh 两项测试通过，覆盖注册、权限拒绝、完成返回，以及通过本地 credentials 服务保存并读取 key。shell 在这些测试中是测试替身；这不是完整 Desktop 聊天验收。
+`scripts/check-desktop.cjs` 将插件测试的 DSH 导入指向安装包内的真实依赖，并用安装版 Electron 的 Node 模式执行。bash/pwsh 与凭据/连接测试共三项通过，覆盖注册、权限拒绝、完成返回，以及通过本地 credentials 服务保存并读取 key。shell 在这些测试中是测试替身；这不是完整 Desktop 聊天验收。
 
 现有 Web 测试环境为 DSH 0.2.1-alpha.3。兼容范围仅列出实际测试的两个版本，不泛化到所有预发布版本。无需 Electron 前端或独立后台服务。
 
@@ -15,7 +15,7 @@
 也可用 Desktop 自带的命令：先启动 Desktop 初始化配置，随后完全退出应用（关闭窗口可能只是隐藏），再执行：
 
 ```powershell
-& "$env:LOCALAPPDATA/Programs/DeepSeek Harness/resources/runtime/cli/bin/dsh.cmd" plugin --profile desktop add "C:/Users/Haonan/Documents/Projects/dsh-run-watchdog/dsh-run-watchdog-0.1.0.tgz"
+& "$env:LOCALAPPDATA/Programs/DeepSeek Harness/resources/runtime/cli/bin/dsh.cmd" plugin --profile desktop add "C:/Users/Haonan/Documents/Projects/dsh-run-watchdog/dsh-run-watchdog-0.2.0.tgz"
 ```
 
 重新打开 Desktop，在插件页确认组件运行。不要用仓库的 `npx dsh` 改写 Desktop profile；不要把 Web 测试 profile 的依赖目录复制过去。此次没有修改正在使用的 Desktop profile，也没有关闭其会话。
@@ -33,7 +33,9 @@
 - 当前读取其他项目 `.env` 的方式只用于验证，不会自动迁移到 Desktop 存储。
 - 如果 DeepSeek provider 被配置为自定义凭据引用，插件的 `apiKeyEnv` 应使用相同名称。
 - 插件复用密钥，不复用聊天 provider 的协议或 baseURL。监控请求仍使用 Chat Completions；不要把聊天卡片的 `/anthropic` 地址复制给插件。
-- Jev 不是普通聊天 provider，不为保存密钥创建假的聊天 provider。第一版 DeepSeek 直接用上述 UI；Jev 目前用 `TYPESAFE_API_KEY` 环境变量。需要 Jev UI 时再给插件增加写入同一凭据存储的小配置页。
+- 插件 → dsh-run-watchdog 现在有独立配置页。DeepSeek 不显示密钥框，只显示是否已配置；选择 Jev 后显示 API Key 输入框，写入 DSH 的 `TYPESAFE_API_KEY` 凭据。留空保留已存密钥，页面不回显它。
+- 判断服务、模型、运行模式及高级时间参数通过 DSH 原生配置表单保存；不会改动主 Agent 的模型。测试连接使用保存后的配置发送合成日志，不执行命令。
+- 先保存修改才能测试连接。测试结果显示判断与耗时；超时明确说明不等于密钥无效。
 
 ## 重跑 Desktop 运行时测试
 
@@ -47,3 +49,7 @@ Remove-Item Env:ELECTRON_RUN_AS_NODE
 ```
 
 官方说明：[Desktop 插件安装与配置所有权](https://github.com/deepseek-ai/deepseek-harness/blob/master/apps/desktop/README.md#bundled-command-runtime)。这里的本机结果以安装包为准，主分支文档可能更新。
+
+## 0.2.0 验证
+
+独立配置页在隔离 Web profile 中实际验证了服务切换、保存、刷新持久化、放弃修改和连接超时提示。15 项离线测试通过；本机 Desktop 安装包运行时 3 项测试通过。Desktop profile 已更新至 0.2.0，原有会话未被关闭；重启后加载新版。截图来自隔离测试实例，不代表用户 Desktop 已配置了密钥。

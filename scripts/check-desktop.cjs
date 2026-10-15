@@ -7,7 +7,8 @@ const { build } = require('esbuild');
 const runtime = createRequire(join(process.resourcesPath, 'app.asar/dsh/package.json'));
 const outfile = resolve('.integration/desktop-plugin-test.mjs');
 build({
-  entryPoints: ['test/plugin.test.ts'], outfile, bundle: true, platform: 'node', format: 'esm',
+  stdin: { contents: "import './test/plugin.test.ts'; import './test/settings.test.ts';", resolveDir: process.cwd(), loader: 'ts' },
+  outfile, bundle: true, platform: 'node', format: 'esm',
   plugins: [{ name: 'installed-desktop', setup(builder) {
     builder.onResolve({ filter: /^@deepseek-ai\// }, args => ({
       path: pathToFileURL(runtime.resolve(args.path)).href, external: true,
