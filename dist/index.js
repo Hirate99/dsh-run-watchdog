@@ -332,7 +332,7 @@ async function usesAccount(ctx, config) {
   return (await ctx.get("deepseekAccount")?.getState())?.status === "credential-stored";
 }
 async function resolveJudge(ctx, config) {
-  if (await usesAccount(ctx, config)) return accountJudge(ctx.llm, config.model);
+  if (await usesAccount(ctx, config)) return accountJudge(ctx.get("llm"), config.model);
   return createJudge({ ...config, apiKey: await resolveKey(ctx, config) });
 }
 var probe = {

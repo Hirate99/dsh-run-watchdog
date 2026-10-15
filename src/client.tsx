@@ -156,17 +156,18 @@ function WatchdogPage({ t, page }: { t: T; page: Page }) {
         {number('judgeTimeoutMs', 'judgeTimeout', 'judgeTimeoutHint')}
         {s.provider === 'jev' && number('stopThreshold', 'stopThreshold', 'stopThresholdHint', 'invalidRatio')}
       </details>
-      <ConnectionTest t={t} dirty={s.dirty} />
+      <ConnectionTest t={t} dirty={s.dirty} refresh={page.readKeys} />
     </SettingsForm>
   );
 }
 
 /** Sends the saved judge one synthetic prompt; a working judge answers notify_agent. */
-function ConnectionTest({ t, dirty }: { t: T; dirty: boolean }) {
+function ConnectionTest({ t, dirty, refresh }: { t: T; dirty: boolean; refresh(): Promise<void> }) {
   const [result, setResult] = useState<{ state: StateDotState; text: string }>();
   async function run() {
     setResult({ state: 'ongoing', text: t('testing') });
     try {
+      await refresh();
       const response = await fetch('/api/run-watchdog/test', { method: 'POST' });
       const body = await response.json() as { choice?: string; latencyMs?: number; error?: string };
       const params = { choice: body.choice, ms: body.latencyMs, reason: body.error };
@@ -213,6 +214,11 @@ export function apply(ctx: Context) {
   });
   const page = createPage(ctx);
   ctx.effect(() => page.dispose);
+  ctx.effect(() => {
+    const refresh = () => { void page.readKeys(); };
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
+  });
   ctx.effect(() => ctx.remote.$on('credentials/reference-updated', () => void page.readKeys()));
   ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
     name: 'plugins.bundle.config', key: 'dsh-run-watchdog', locale: NS,

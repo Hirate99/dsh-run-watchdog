@@ -285,16 +285,17 @@ function WatchdogPage({ t, page }) {
           number("judgeTimeoutMs", "judgeTimeout", "judgeTimeoutHint"),
           s.provider === "jev" && number("stopThreshold", "stopThreshold", "stopThresholdHint", "invalidRatio")
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ConnectionTest, { t, dirty: s.dirty })
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ConnectionTest, { t, dirty: s.dirty, refresh: page.readKeys })
       ]
     }
   );
 }
-function ConnectionTest({ t, dirty }) {
+function ConnectionTest({ t, dirty, refresh }) {
   const [result, setResult] = (0, import_react.useState)();
   async function run() {
     setResult({ state: "ongoing", text: t("testing") });
     try {
+      await refresh();
       const response = await fetch("/api/run-watchdog/test", { method: "POST" });
       const body = await response.json();
       const params = { choice: body.choice, ms: body.latencyMs, reason: body.error };
@@ -336,6 +337,13 @@ function apply(ctx) {
   });
   const page = createPage(ctx);
   ctx.effect(() => page.dispose);
+  ctx.effect(() => {
+    const refresh = () => {
+      void page.readKeys();
+    };
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  });
   ctx.effect(() => ctx.remote.$on("credentials/reference-updated", () => void page.readKeys()));
   ctx.slots.inject("plugins.bundle.config", () => ctx.slots.register({
     name: "plugins.bundle.config",

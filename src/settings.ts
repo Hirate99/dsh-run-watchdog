@@ -24,7 +24,7 @@ export async function usesAccount(ctx: Context, config: Config): Promise<boolean
 }
 
 export async function resolveJudge(ctx: Context, config: Config) {
-  if (await usesAccount(ctx, config)) return accountJudge(ctx.llm, config.model);
+  if (await usesAccount(ctx, config)) return accountJudge(ctx.get('llm')!, config.model);
   return createJudge({ ...config, apiKey: await resolveKey(ctx, config) });
 }
 

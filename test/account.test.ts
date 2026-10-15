@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { Context } from '@deepseek-ai/cordis';
+import { Context } from '@deepseek-ai/cordis';
 import type { GenerateOptions, LlmRuntime } from '@deepseek-ai/dsh-llm';
 import { Config, readConfig } from '../src/index';
 import { options } from '../src/decision';
@@ -41,4 +41,27 @@ test('account reuse respects sign-out, custom endpoints, explicit keys and Jev i
   assert.equal(await usesAccount(ctx, { ...config, provider: 'jev' }), false);
   assert.equal(await usesAccount(ctx, { ...config, baseURL: 'https://example.invalid' }), false);
   assert.equal(await usesAccount(ctx, { ...config, apiKeyEnv: 'CUSTOM_KEY' }), false);
+});
+
+test('account judge works inside a Cordis plugin without undeclared service access', async () => {
+  const services = fixture();
+  const root = new Context();
+  const releaseLlm = root.provide('llm', services.ctx.get('llm'));
+  const releaseAccount = root.provide('deepseekAccount', services.ctx.get('deepseekAccount'));
+  const result = Promise.withResolvers<unknown>();
+  const plugin = root.plugin({
+    apply(ctx: Context) {
+      void resolveJudge(ctx, readConfig(Config({})))
+        .then(judge => judge.decide(probe, options, new AbortController().signal))
+        .then(result.resolve, result.reject);
+    },
+  });
+  try {
+    await plugin;
+    assert.deepEqual(await result.promise, { choice: 'notify_agent', probabilities: undefined });
+  } finally {
+    await plugin.dispose();
+    releaseAccount();
+    releaseLlm();
+  }
 });
