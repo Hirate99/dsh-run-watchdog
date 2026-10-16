@@ -4,7 +4,7 @@ English | [简体中文](README.zh-CN.md)
 
 Monitor long-running DeepSeek Harness jobs using their purpose and live output. Alert the main agent when training, builds, tests, or data processing need attention.
 
-Supports **DeepSeek and Jev**. Version **0.1.2**.
+Supports **DeepSeek and Jev**. Version **0.1.3**.
 
 ## Demo
 
@@ -24,7 +24,7 @@ Open **Plugins → Add plugin**, enter the package name, then select **Install �
 
 Use `@mskyurina/dsh-run-watchdog@<version>` to pin a version. Configure it under **Plugins → dsh-run-watchdog**.
 
-Alternatively, install the [v0.1.2 release package](https://github.com/Hirate99/dsh-run-watchdog/releases/download/v0.1.2/mskyurina-dsh-run-watchdog-0.1.2.tgz), or build a package below. The repository no longer tracks dist; install a release package.
+Alternatively, install the [v0.1.3 release package](https://github.com/Hirate99/dsh-run-watchdog/releases/download/v0.1.3/mskyurina-dsh-run-watchdog-0.1.3.tgz), or build a package below. The repository no longer tracks dist; install a release package.
 
 ### Build from source
 
@@ -36,10 +36,10 @@ npm run check
 npm pack
 ```
 
-Install the generated `mskyurina-dsh-run-watchdog-0.1.2.tgz` through Desktop's plugin page. Alternatively, fully quit Desktop and use its bundled CLI on Windows:
+Install the generated `mskyurina-dsh-run-watchdog-0.1.3.tgz` through Desktop's plugin page. Alternatively, fully quit Desktop and use its bundled CLI on Windows:
 
 ```powershell
-& "$env:LOCALAPPDATA/Programs/DeepSeek Harness/resources/runtime/cli/bin/dsh.cmd" plugin --profile desktop add "<absolute-package-path>/mskyurina-dsh-run-watchdog-0.1.2.tgz"
+& "$env:LOCALAPPDATA/Programs/DeepSeek Harness/resources/runtime/cli/bin/dsh.cmd" plugin --profile desktop add "<absolute-package-path>/mskyurina-dsh-run-watchdog-0.1.3.tgz"
 ```
 
 Reopen Desktop and configure the plugin.

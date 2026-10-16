@@ -4,7 +4,7 @@
 
 结合任务目的和运行日志，判断长任务是否值得继续等待，发现异常时提醒主 Agent。
 
-适用于 DeepSeek Harness 的训练、构建、测试和数据处理任务。支持 **DeepSeek / Jev**，版本 **0.1.2**。
+适用于 DeepSeek Harness 的训练、构建、测试和数据处理任务。支持 **DeepSeek / Jev**，版本 **0.1.3**。
 
 ## 演示
 
@@ -24,7 +24,7 @@
 
 需要固定版本时使用 `@mskyurina/dsh-run-watchdog@<版本号>`。在 **插件 → dsh-run-watchdog** 中配置。
 
-也可安装 [v0.1.2 安装包](https://github.com/Hirate99/dsh-run-watchdog/releases/download/v0.1.2/mskyurina-dsh-run-watchdog-0.1.2.tgz)，或按下文从源码打包。仓库不再提交 dist，请使用发布包安装。
+也可安装 [v0.1.3 安装包](https://github.com/Hirate99/dsh-run-watchdog/releases/download/v0.1.3/mskyurina-dsh-run-watchdog-0.1.3.tgz)，或按下文从源码打包。仓库不再提交 dist，请使用发布包安装。
 
 ### 从源码构建
 
@@ -36,10 +36,10 @@ npm run check
 npm pack
 ```
 
-在 Desktop 的插件页面安装生成的 `mskyurina-dsh-run-watchdog-0.1.2.tgz` 并启用。也可在完全退出 Desktop 后使用其自带 CLI：
+在 Desktop 的插件页面安装生成的 `mskyurina-dsh-run-watchdog-0.1.3.tgz` 并启用。也可在完全退出 Desktop 后使用其自带 CLI：
 
 ```powershell
-& "$env:LOCALAPPDATA/Programs/DeepSeek Harness/resources/runtime/cli/bin/dsh.cmd" plugin --profile desktop add "<包的绝对路径>/mskyurina-dsh-run-watchdog-0.1.2.tgz"
+& "$env:LOCALAPPDATA/Programs/DeepSeek Harness/resources/runtime/cli/bin/dsh.cmd" plugin --profile desktop add "<包的绝对路径>/mskyurina-dsh-run-watchdog-0.1.3.tgz"
 ```
 
 重新打开 Desktop，在 **插件 → dsh-run-watchdog** 中配置。

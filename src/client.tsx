@@ -387,7 +387,7 @@ export function apply(ctx: Context) {
     ctx.slots.register(
       {
         name: 'plugins.bundle.config',
-        key: 'dsh-run-watchdog',
+        key: '@mskyurina/dsh-run-watchdog',
         locale: NS,
       },
       ({ t }) => <WatchdogPage t={t as T} page={page} />,
