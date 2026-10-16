@@ -1,7 +1,5 @@
 node_modules/
-dist/*.js
-!dist/index.js
-!dist/client.js
+dist/
 .env
 *.jsonl
 .integration/

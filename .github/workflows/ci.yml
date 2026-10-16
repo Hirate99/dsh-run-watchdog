@@ -26,33 +26,112 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
-      - name: Verify committed build
-        run: git diff --exit-code -- dist
       - run: npm pack
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: package-${{ matrix.os }}
-          path: dsh-run-watchdog-*.tgz
+          path: mskyurina-dsh-run-watchdog-*.tgz
           if-no-files-found: error
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: >-
+      github.event_name != 'pull_request' &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     needs: test
     runs-on: ubuntu-latest
+    environment: npm
+    concurrency:
+      group: publish-npm
+      cancel-in-progress: false
     timeout-minutes: 15
     permissions:
       contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: npm
-      - name: Check tag matches package version
-        run: node -e "if (process.env.GITHUB_REF_NAME !== 'v' + require('./package.json').version) process.exit(1)"
+          registry-url: https://registry.npmjs.org
+      - name: Use npm with trusted publishing support
+        run: npm install --global npm@11.6.2
+      - name: Plan release
+        id: plan
+        run: |
+          VERSION=$(node --print "require('./package.json').version")
+          COMPONENT='(0|[1-9][0-9]*)'
+          if ! [[ "$VERSION" =~ ^$COMPONENT\.$COMPONENT\.$COMPONENT$ ]]; then
+            echo "::error::Releases require a stable x.y.z version."
+            exit 1
+          fi
+          TAG="v$VERSION"
+          git fetch origin --tags
+          if [[ "$GITHUB_REF" == refs/tags/* && "$GITHUB_REF_NAME" != "$TAG" ]]; then
+            echo "::error::Tag does not match package version."
+            exit 1
+          fi
+          if git rev-parse --verify --quiet "refs/tags/$TAG^{commit}" >/dev/null; then
+            if [ "$(git rev-parse "refs/tags/$TAG^{commit}")" != "$(git rev-parse HEAD)" ]; then
+              echo "Version $VERSION already has a release tag; bump the version to release."
+              echo "publish=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
       - run: npm ci
+        if: steps.plan.outputs.publish == 'true'
       - run: npm pack
+        if: steps.plan.outputs.publish == 'true'
+      - name: Create release tag
+        if: steps.plan.outputs.publish == 'true'
+        env:
+          RELEASE_TAG: ${{ steps.plan.outputs.tag }}
+        run: |
+          if ! git rev-parse --verify --quiet "refs/tags/$RELEASE_TAG^{commit}" >/dev/null; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$RELEASE_TAG" -m "Release $RELEASE_TAG"
+            git push origin "refs/tags/$RELEASE_TAG"
+          fi
+      - name: Check npm publication
+        if: steps.plan.outputs.publish == 'true'
+        id: npm
+        env:
+          RELEASE_VERSION: ${{ steps.plan.outputs.version }}
+        run: |
+          if npm view "@mskyurina/dsh-run-watchdog@$RELEASE_VERSION" version --json \
+            > "$RUNNER_TEMP/npm-version.json" 2> "$RUNNER_TEMP/npm-error.txt"; then
+            node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const path = `${process.env.RUNNER_TEMP}/npm-version.json`;
+          const version = JSON.parse(readFileSync(path, 'utf8'));
+          if (version !== process.env.RELEASE_VERSION) process.exit(1);
+          NODE
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            cat "$RUNNER_TEMP/npm-error.txt"
+            node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const path = `${process.env.RUNNER_TEMP}/npm-version.json`;
+          const result = JSON.parse(readFileSync(path, 'utf8'));
+          if (result.error?.code !== 'E404') process.exit(1);
+          NODE
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publish npm package
+        if: steps.plan.outputs.publish == 'true' && steps.npm.outputs.published != 'true'
+        run: npm publish mskyurina-dsh-run-watchdog-*.tgz --access public
       - name: Publish GitHub release
+        if: steps.plan.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dsh-run-watchdog-*.tgz --verify-tag --generate-notes
+          RELEASE_TAG: ${{ steps.plan.outputs.tag }}
+        run: |
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" mskyurina-dsh-run-watchdog-*.tgz --verify-tag --generate-notes
+          fi

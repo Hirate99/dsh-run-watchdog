@@ -8,9 +8,12 @@ export function interruptibleOutputWaits(ctx: Context) {
   const pendingAlerts = new Set<SessionId>();
   // Keep the interrupt armed while a model response is still in flight.
   ctx.on('session/event', (session, event) => {
-    if (event.type === 'user/message' && event.data.source?.kind === 'run-watchdog') pendingAlerts.delete(session.id);
+    if (event.type === 'user/message' && event.data.source?.kind === 'run-watchdog')
+      pendingAlerts.delete(session.id);
   });
-  ctx.on('session/disposed', session => { pendingAlerts.delete(session.id); });
+  ctx.on('session/disposed', (session) => {
+    pendingAlerts.delete(session.id);
+  });
   ctx.on('tools/execute', async (exec, next) => {
     if (exec.name !== 'job_output' || !exec.agent) return next();
     if ((exec.arguments as { wait?: boolean }).wait !== true) return next();
@@ -39,5 +42,7 @@ export function interruptibleOutputWaits(ctx: Context) {
 }
 
 function interruptionReason(): Error {
-  return new Error('Watchdog alert: output wait interrupted; background jobs continue running.');
+  return new Error(
+    'Watchdog alert: output wait interrupted; background jobs continue running.',
+  );
 }

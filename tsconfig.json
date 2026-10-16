@@ -4,9 +4,7 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "strict": true,
-    "types": [
-      "node"
-    ],
+    "types": ["node"],
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
     "declaration": true,
@@ -14,8 +12,5 @@
     "rootDir": "src",
     "jsx": "react-jsx"
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx"
-  ]
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

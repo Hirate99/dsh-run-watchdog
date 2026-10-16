@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.integration/
+.claude/
+docs/
+assets/
+package-lock.json

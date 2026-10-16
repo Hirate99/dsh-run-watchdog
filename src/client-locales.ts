@@ -2,12 +2,14 @@ export type Key = keyof typeof en;
 
 export const en = {
   provider: 'Judge',
-  providerHint: 'A small model that reads the command purpose and recent output at each check.',
+  providerHint:
+    'A small model that reads the command purpose and recent output at each check.',
   deepseekKeySet: 'Uses the DeepSeek API key from Settings → Models.',
   deepseekAccount: 'Uses your DSH DeepSeek account.',
   deepseekKeyUnset: 'Sign in to DeepSeek in DSH, or add an API key in Settings → Models.',
   jevKey: 'Jev API key',
-  jevKeyHint: 'Stored in DSH credentials, never in the settings file. Leave blank to keep the current key.',
+  jevKeyHint:
+    'Stored in DSH credentials, never in the settings file. Leave blank to keep the current key.',
   jevKeySet: 'A key is configured.',
   jevKeyUnset: 'No key is configured.',
   model: 'Model',
@@ -15,22 +17,29 @@ export const en = {
   mode: 'Mode',
   shadow: 'Observe',
   enforce: 'Act',
-  shadowHint: 'Records decisions without sending alerts.',
-  enforceHint: 'Alerts the agent when attention is needed. Automatic stopping is off by default.',
+  shadowHint:
+    'Keeps task judgments for inspection. Monitoring failures still notify the agent.',
+  enforceHint:
+    'Alerts the agent when attention is needed. Automatic stopping is off by default.',
   advanced: 'Advanced',
   firstCheck: 'First check (seconds)',
   firstCheckHint: 'Delay before the first judgement.',
   judgeTimeout: 'Judge timeout (seconds)',
-  judgeTimeoutHint: 'A slower answer counts as a failed check and the command keeps running.',
+  judgeTimeoutHint:
+    'A slower answer counts as a failed check and the command keeps running.',
   stopThreshold: 'Jev stop threshold',
-  stopThresholdHint: 'Probability of "stop" required before an auto-stoppable job is cancelled (0.5–1).',
+  stopThresholdHint:
+    'Minimum stop score for authorized automatic stopping (0.5–1); not a calibrated accuracy estimate.',
   test: 'Test connection',
-  testHint: 'Sends one synthetic "Continue? [y/N]" log to the saved judge. Runs no command.',
+  testHint:
+    'Sends one synthetic "Continue? [y/N]" log to the saved judge. Runs no command.',
   testSaveFirst: 'Save your changes before testing.',
   testing: 'Waiting for the judge…',
   testOk: 'Connected · {choice} · {ms} ms',
-  testOdd: 'Connected in {ms} ms, but the judge chose {choice}; a working judge should choose notify_agent.',
-  testTimeout: 'No answer before the judge timeout. The key may still be valid; the service may be slow.',
+  testOdd:
+    'Connected in {ms} ms, but the judge chose {choice}; a working judge should choose notify_agent.',
+  testTimeout:
+    'No answer before the judge timeout. The key may still be valid; the service may be slow.',
   testNoKey: 'No API key is configured for this judge.',
   testFailed: 'Connection failed ({reason}).',
   overridden: 'Overridden',
@@ -41,7 +50,8 @@ export const en = {
   unavailable: 'The watchdog is not running, so it cannot be configured right now.',
   save: 'Save',
   saving: 'Saving…',
-  saveFailed: 'The deployment did not accept these values; they were left for you to correct.',
+  saveFailed:
+    'The deployment did not accept these values; they were left for you to correct.',
 };
 
 export const zh: Record<Key, string> = {
@@ -59,7 +69,7 @@ export const zh: Record<Key, string> = {
   mode: '运行模式',
   shadow: '观察',
   enforce: '执行',
-  shadowHint: '后台观察，只记录判断。',
+  shadowHint: '后台观察，判断可查询；监测失效仍会通知。',
   enforceHint: '发现异常时提醒 Agent；默认不自动停止任务。',
   advanced: '高级',
   firstCheck: '首次检查（秒）',
@@ -67,7 +77,8 @@ export const zh: Record<Key, string> = {
   judgeTimeout: '判断超时（秒）',
   judgeTimeoutHint: '超过即视为本次检查失败，命令照常运行。',
   stopThreshold: 'Jev 停止阈值',
-  stopThresholdHint: '"停止"的概率达到该值，才会取消允许自动停止的任务（0.5–1）。',
+  stopThresholdHint:
+    '仅对已授权的任务生效：停止分数须达到该值（0.5–1），不代表已校准的正确率。',
   test: '测试连接',
   testHint: '向已保存的判断服务发送一段合成的 "Continue? [y/N]" 日志，不执行任何命令。',
   testSaveFirst: '请先保存修改再测试。',
